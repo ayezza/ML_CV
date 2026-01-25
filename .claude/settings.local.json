@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dir /b \"d:\\\\PythonProjects\\\\ML_CV\\\\cv_experiments\")"
-    ]
-  }
-}
