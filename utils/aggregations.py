@@ -12,7 +12,6 @@ Example:
     CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (1 + 0.920) * h + 4.064
 """
 import numpy as np
-from scipy.spatial import distance
 
 
 # Global variable to store user-defined custom aggregation
