@@ -14,7 +14,7 @@ class Config:
     OUTPUT_DIR = BASE_DIR / 'output'
 
     # Input data
-    DATA_PATH = DATA_DIR / 'ENB_data.csv'
+    DATA_PATH = DATA_DIR / 'bike_sharing_hour.csv' # 'ENB_data.csv'
 
     # Output subdirectories
     GRAPHS_DIR = OUTPUT_DIR / 'graphs'
@@ -64,7 +64,7 @@ class Config:
     REG_PREDICTIONS_DIR = REPORTS_DIR / 'regression_pred'
 
     # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
+    AGGREGATION_COLS = ['casual', 'registered']  # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
 
     # Custom aggregation function (used when AGGREGATION_NAME = 'custom')
@@ -97,7 +97,7 @@ class Config:
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
 
     # Classification settings
-    N_CLASSES = 4  # Number of classes for classification
+    N_CLASSES = 'auto'  # Number of classes for classification (computed based on data if 'auto')
 
     # Clustering method for creating classification labels
     # Options: 'qcut' (default - predefined bins) or 'kmeans' (natural clusters)

@@ -200,22 +200,135 @@ class DataPreprocessor:
 
         return self.df_corr
 
+    def find_optimal_n_classes(self, k_range=(2, 10), method='silhouette'):
+        """
+        Find the optimal number of classes/clusters using clustering metrics.
 
-    def create_target_variables(self, n_classes=4, clustering_method='qcut'):
+        Args:
+            k_range: Tuple (min_k, max_k) - range of k values to test (default: 2 to 10)
+            method: Method to determine optimal k:
+                    'silhouette' - Maximize silhouette score (default, recommended)
+                    'calinski' - Maximize Calinski-Harabasz index
+                    'davies_bouldin' - Minimize Davies-Bouldin index
+                    'elbow' - Use elbow method (inertia)
+
+        Returns:
+            dict: {
+                'optimal_k': int - Best number of clusters,
+                'scores': dict - All scores for each k,
+                'method': str - Method used
+            }
+
+        Example:
+            >>> result = preprocessor.find_optimal_n_classes(k_range=(2, 8))
+            >>> optimal_k = result['optimal_k']
+            >>> preprocessor.create_target_variables(n_classes=optimal_k, clustering_method='kmeans')
+        """
+        print("="*80)
+        print(" "*15 + "FINDING OPTIMAL NUMBER OF CLASSES")
+        print("="*80)
+
+        if self.df is None:
+            raise ValueError("Data not loaded. Call load_data() first.")
+
+        # Prepare data for clustering
+        X = self.df[self.aggregation_cols].values
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        min_k, max_k = k_range
+        k_values = range(min_k, max_k + 1)
+
+        # Store metrics for each k
+        silhouette_scores = {}
+        calinski_scores = {}
+        davies_bouldin_scores = {}
+        inertias = {}
+
+        print(f"\nTesting k values from {min_k} to {max_k}...")
+        print(f"Method: {method.upper()}\n")
+        print(f"{'k':<4} {'Silhouette':<12} {'Calinski-H':<12} {'Davies-B':<12} {'Inertia':<12}")
+        print("-" * 56)
+
+        for k in k_values:
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(X_scaled)
+
+            # Calculate all metrics
+            sil_score = silhouette_score(X_scaled, labels)
+            cal_score = calinski_harabasz_score(X_scaled, labels)
+            db_score = davies_bouldin_score(X_scaled, labels)
+            inertia = kmeans.inertia_
+
+            silhouette_scores[k] = sil_score
+            calinski_scores[k] = cal_score
+            davies_bouldin_scores[k] = db_score
+            inertias[k] = inertia
+
+            print(f"{k:<4} {sil_score:<12.4f} {cal_score:<12.2f} {db_score:<12.4f} {inertia:<12.2f}")
+
+        # Determine optimal k based on method
+        if method == 'silhouette':
+            optimal_k = max(silhouette_scores, key=silhouette_scores.get)
+            best_score = silhouette_scores[optimal_k]
+            print(f"\n✓ Optimal k={optimal_k} (highest silhouette score: {best_score:.4f})")
+
+        elif method == 'calinski':
+            optimal_k = max(calinski_scores, key=calinski_scores.get)
+            best_score = calinski_scores[optimal_k]
+            print(f"\n✓ Optimal k={optimal_k} (highest Calinski-Harabasz: {best_score:.2f})")
+
+        elif method == 'davies_bouldin':
+            optimal_k = min(davies_bouldin_scores, key=davies_bouldin_scores.get)
+            best_score = davies_bouldin_scores[optimal_k]
+            print(f"\n✓ Optimal k={optimal_k} (lowest Davies-Bouldin: {best_score:.4f})")
+
+        elif method == 'elbow':
+            # Find elbow using second derivative (rate of change)
+            inertia_list = [inertias[k] for k in k_values]
+            # Calculate rate of change
+            diffs = np.diff(inertia_list)
+            # Find where the rate of change slows down the most
+            elbow_idx = np.argmin(np.diff(diffs)) + 1
+            optimal_k = list(k_values)[elbow_idx]
+            print(f"\n✓ Optimal k={optimal_k} (elbow point in inertia curve)")
+
+        else:
+            raise ValueError(f"Unknown method: {method}. Use 'silhouette', 'calinski', 'davies_bouldin', or 'elbow'")
+
+        print("="*80 + "\n")
+
+        return {
+            'optimal_k': optimal_k,
+            'scores': {
+                'silhouette': silhouette_scores,
+                'calinski': calinski_scores,
+                'davies_bouldin': davies_bouldin_scores,
+                'inertia': inertias
+            },
+            'method': method
+        }
+
+    def create_target_variables(self, n_classes=4, clustering_method='qcut', auto_k_method='silhouette'):
         """
         Create aggregated target variable and classification classes
 
         Args:
             n_classes: Number of classes for classification (default: 4)
+                       Use 'auto' to automatically find optimal number of classes
             clustering_method: Method to create classes - 'qcut' or 'kmeans' (default: 'qcut')
                 'qcut': Quantile-based binning on aggregated values
                 'kmeans': KMeans clustering on target_vars space
+            auto_k_method: Method for finding optimal k when n_classes='auto'
+                           Options: 'silhouette', 'calinski', 'davies_bouldin', 'elbow'
 
         Returns:
             tuple: (df, target_classes_dict) - Updated dataframe and dict of class DataFrames
 
         Example:
             >>> df, classes = preprocessor.create_target_variables(n_classes=4, clustering_method='kmeans')
+            >>> # Or find optimal k automatically:
+            >>> df, classes = preprocessor.create_target_variables(n_classes='auto', clustering_method='kmeans')
         """
         print("="*80)
         print(" "*20 + "CREATING TARGET VARIABLES")
@@ -223,6 +336,12 @@ class DataPreprocessor:
 
         if self.df is None:
             raise ValueError("Data not loaded. Call load_data() first.")
+
+        # Handle 'auto' n_classes - find optimal k
+        if n_classes == 'auto':
+            result = self.find_optimal_n_classes(k_range=(2, 10), method=auto_k_method)
+            n_classes = result['optimal_k']
+            print(f"Using automatically determined n_classes={n_classes}")
 
         # Get aggregation function
         aggregation_func = get_aggregation_function(self.aggregation_name)
@@ -273,8 +392,8 @@ class DataPreprocessor:
             centers = scaler.inverse_transform(centers_scaled)
 
             print(f"\n  Cluster centers {self.aggregation_cols}:")
-            for i, (h, c) in enumerate(centers):
-                print(f"    Cluster {i}: ({h:.2f}, {c:.2f})")
+            for i, (col1, col2) in enumerate(centers):
+                print(f"    Cluster {i}: ({col1:.2f}, {col2:.2f})")
 
         else:  # pandas qcut (default)
             # Use quantile-based binning on aggregated values
@@ -344,6 +463,63 @@ class DataPreprocessor:
 
         return output_path
 
+    def _handle_non_numeric_columns(self, df):
+        """
+        Handle non-numeric columns by converting dates to features and dropping others.
+
+        - Date/datetime columns: Extract year, month, day, dayofweek, is_weekend
+        - Object/string columns: Drop (or could be encoded if needed)
+
+        Args:
+            df: DataFrame with feature columns
+
+        Returns:
+            DataFrame with only numeric columns (dates converted to features)
+        """
+        df_processed = df.copy()
+        cols_to_drop = []
+
+        for col in df_processed.columns:
+            dtype = df_processed[col].dtype
+
+            # Check if column is object type (string/date)
+            if dtype == 'object':
+                # Try to parse as datetime
+                try:
+                    date_col = pd.to_datetime(df_processed[col], errors='coerce')
+                    # If more than 50% are valid dates, treat as date column
+                    if date_col.notna().mean() > 0.5:
+                        print(f"  Converting date column '{col}' to numeric features...")
+                        df_processed[f'{col}_year'] = date_col.dt.year
+                        df_processed[f'{col}_month'] = date_col.dt.month
+                        df_processed[f'{col}_day'] = date_col.dt.day
+                        df_processed[f'{col}_dayofweek'] = date_col.dt.dayofweek
+                        df_processed[f'{col}_is_weekend'] = (date_col.dt.dayofweek >= 5).astype(int)
+                        cols_to_drop.append(col)
+                    else:
+                        # Non-date string column - drop it
+                        print(f"  Dropping non-numeric column '{col}' (type: {dtype})")
+                        cols_to_drop.append(col)
+                except Exception:
+                    print(f"  Dropping non-numeric column '{col}' (type: {dtype})")
+                    cols_to_drop.append(col)
+
+            # Handle datetime columns directly
+            elif pd.api.types.is_datetime64_any_dtype(dtype):
+                print(f"  Converting datetime column '{col}' to numeric features...")
+                df_processed[f'{col}_year'] = df_processed[col].dt.year
+                df_processed[f'{col}_month'] = df_processed[col].dt.month
+                df_processed[f'{col}_day'] = df_processed[col].dt.day
+                df_processed[f'{col}_dayofweek'] = df_processed[col].dt.dayofweek
+                df_processed[f'{col}_is_weekend'] = (df_processed[col].dt.dayofweek >= 5).astype(int)
+                cols_to_drop.append(col)
+
+        # Drop original date/non-numeric columns
+        if cols_to_drop:
+            df_processed = df_processed.drop(columns=cols_to_drop)
+
+        return df_processed
+
     def get_feature_target_split(self):
         """
         Split data into features and targets for both classification and regression
@@ -375,8 +551,15 @@ class DataPreprocessor:
         print("="*80)
         print(" "*20 + "FEATURE-TARGET SPLIT")
         print("="*80)
-        print(f"\nFeatures (X): {X.shape}")
+        print(f"\nOriginal Features (X): {X.shape}")
         print(f"  Columns: {feature_cols}")
+
+        # Handle non-numeric columns (dates, strings, etc.)
+        X = self._handle_non_numeric_columns(X)
+        final_feature_cols = X.columns.tolist()
+
+        print(f"\nProcessed Features (X): {X.shape}")
+        print(f"  Columns: {final_feature_cols}")
         print(f"\nClassification Target (y): {y_classification.shape}")
         print(f"  Classes: {sorted(y_classification.unique())}")
         print(f"\nRegression Target (y): {y_regression.shape}")
@@ -387,7 +570,7 @@ class DataPreprocessor:
             'X': X,
             'y_classification': y_classification,
             'y_regression': y_regression,
-            'feature_names': feature_cols
+            'feature_names': final_feature_cols
         }
 
     def get_multioutput_targets(self):
