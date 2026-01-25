@@ -22,9 +22,7 @@ from visualization.classification import (
 from visualization.learning_curves_summary import create_learning_curves_summary_table
 from visualization.regression import plot_regression_scatter
 from visualization.analysis import plot_learning_curve
-from pathlib import Path
 import pandas as pd
-import numpy as np
 
 
 class ModelTrainer:

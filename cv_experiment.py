@@ -38,6 +38,7 @@ sys.path.insert(0, str(parent_dir))
 import time
 import pandas as pd
 
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 from config import Config
@@ -84,12 +85,18 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
     y_classification = data['y_classification']
     y_regression = data['y_regression']
 
-    # Train-test split
+
+    # ClassificationTrain-test split
     X_train, X_test, y_train_clf, y_test_clf = train_test_split(
         X, y_classification,
         test_size=Config.TEST_SIZE,
         random_state=Config.RANDOM_STATE
     )
+
+    # REGRESSION Standardize features by scaling to allow models like SVM to perform better (using Gradient Descent algorithms)
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)    
 
     X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
         X, y_regression,
