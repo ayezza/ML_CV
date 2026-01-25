@@ -1,0 +1,497 @@
+"""
+Hyperparameter Tuning Module
+
+This module handles hyperparameter tuning using GridSearchCV and RandomizedSearchCV.
+"""
+import pandas as pd
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.ensemble import (RandomForestClassifier, RandomForestRegressor, GradientBoostingRegressor,
+                              BaggingClassifier, BaggingRegressor, StackingClassifier, StackingRegressor)
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn import svm, neighbors
+from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.naive_bayes import GaussianNB
+import xgboost as xgb
+import lightgbm as lgb
+
+
+class ModelTuner:
+    """
+    Handles hyperparameter tuning for ML models
+
+    This class provides methods to tune different models using GridSearchCV
+    or RandomizedSearchCV with predefined parameter grids.
+    """
+
+    # Classification parameter grids
+    # Depending on the model and its tuned hyperparameters, these grids can be adjusted to improve performance and speed up tuning
+    # We can reduce the number of options for faster tuning or expand them for better results depending on your machine capabilities
+    CLF_PARAM_GRIDS = {
+        'RandomForest': {
+            'n_estimators': [49, 50, 100, 150, 200],
+            'max_depth': [None, 5, 6, 7, 10],
+            'min_samples_split': [2, 5, 10, 12],
+            'min_samples_leaf': [1, 2, 4, 6, 8],
+            'max_features': ['sqrt', 'log2', None]
+        },
+        'DecisionTree': {
+            'max_depth': [None, 5, 6, 7, 10],
+            'min_samples_split': [2, 5, 10, 12],
+            'min_samples_leaf': [1, 2, 4, 6, 8],
+            'criterion': ['gini', 'entropy'],
+            'max_features': ['sqrt', 'log2', None]
+        },
+        #'SVC': {
+        #    'C': [1, 10, 100],                    
+        #    'gamma': ['scale', 0.01, 0.1],        
+        #    'kernel': ['rbf', 'linear'],          
+        #    'class_weight': [None, 'balanced']   
+        #},
+        'SVC': {
+            'C': [100],                    
+            'gamma': ['scale'],        
+            'kernel': ['rbf'],          
+            'class_weight': ['balanced']   
+        },
+        'KNN': {
+            'n_neighbors': [3, 5, 7, 9, 11, 15],
+            'weights': ['uniform', 'distance'],
+            'metric': ['euclidean', 'manhattan', 'minkowski']
+        },
+        'LogisticRegression': [
+            # lbfgs: only l2 or None
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['lbfgs'],
+             'max_iter': [1000, 2000], 'class_weight': [None, 'balanced']},
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': [None], 'solver': ['lbfgs'],
+             'max_iter': [1000, 2000], 'class_weight': [None, 'balanced']},
+
+            # liblinear: l1 or l2 (no elasticnet, no None)
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l1'], 'solver': ['liblinear'],
+             'max_iter': [1000], 'class_weight': [None, 'balanced']},
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['liblinear'],
+             'max_iter': [1000], 'class_weight': [None, 'balanced']},
+
+            # saga: all penalties (l1, l2, elasticnet, None)
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l1'], 'solver': ['saga'],
+             'max_iter': [2000], 'class_weight': [None, 'balanced']},
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['saga'],
+             'max_iter': [2000], 'class_weight': [None, 'balanced']},
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['elasticnet'], 'solver': ['saga'],
+             'l1_ratio': [0.3, 0.5, 0.7], 'max_iter': [2000], 'class_weight': [None, 'balanced']},
+            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': [None], 'solver': ['saga'],
+             'max_iter': [2000], 'class_weight': [None, 'balanced']},
+        ],
+        'NaiveBayes': {
+            'var_smoothing': [1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4],  # Extended range (more values)
+            'priors': [None]  # Could add custom priors based on class distribution
+        },
+        'Bagging': {
+            'n_estimators': [25, 50, 100],
+            'max_samples': [0.6, 0.8, 1.0],
+            'max_features': [0.6, 0.8, 1.0]
+        },
+        'Stacking': {
+            # Stacking hyperparameters are minimal (cv folds mainly)
+            # Base estimators use default parameters
+            'cv': [3, 5]
+        }
+    }
+
+    # Regression parameter grids
+    REG_PARAM_GRIDS = {
+        'RandomForest': {
+            'n_estimators': [49, 50, 100, 200, 250],
+            'max_depth': [None, 5, 6, 7, 10, 15],
+            'min_samples_split': [2, 5, 10, 12],
+            'min_samples_leaf': [1, 2, 4, 8, 10],
+        },
+        'DecisionTree': {
+            'max_depth': [None, 5, 6, 7, 10],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4, 6],
+            'criterion': ['squared_error', 'friedman_mse', 'absolute_error'],
+            'max_features': ['sqrt', 'log2', None]
+        },
+        'SVM': {
+            'C': [500],  # Wide range for regularization (higher C = less regularization)
+            'gamma': ['scale', 'auto'],  # Kernel coefficient (lower gamma = smoother)
+            'kernel': ['rbf'],  # Try different kernels
+            'epsilon': [0.01]  # Epsilon-tube width (smaller = tighter fit)
+            #'degree': [2]  # Only for poly kernel
+        },
+        #'KNN': {
+        #    'n_neighbors': [3, 5, 7, 9, 11, 15],
+        #    'weights': ['uniform', 'distance'],
+        #    'metric': ['euclidean', 'manhattan']
+        #},
+        'KNN': {
+            'n_neighbors': [3, 5, 7, 9, 11, 15],
+            'weights': ['uniform', 'distance'],
+            'metric': ['euclidean', 'manhattan']
+        },
+        'LinearRegression': {
+            # LinearRegression has no hyperparameters to tune
+            # This is a placeholder - tuning will just return the base model
+        },
+        'Ridge': {
+            'alpha': [0.00001, 0.01, 0.1],
+            'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'saga']
+        },
+        'Lasso': {
+            'alpha': [0.00001, 0.01, 0.1],
+            'selection': ['cyclic', 'random']
+        },
+        'ElasticNet': {
+            'alpha': [0.00001, 0.01, 0.10],
+            'l1_ratio': [0.1, 0.5, 0.7, 1.0],
+            'selection': ['cyclic', 'random']
+        },
+        'GradientBoosting': {
+            'n_estimators': [50, 100, 200],
+            'learning_rate': [0.01, 0.1, 0.2],
+            'max_depth': [3, 5, 7],
+            'min_samples_split': [2, 5, 10]
+        },
+        'XGBoost': {
+            'n_estimators': [50, 100, 200],
+            'learning_rate': [0.01, 0.1, 0.2],
+            'max_depth': [3, 5, 7],
+            'min_child_weight': [1, 3, 5]
+        },
+        'LightGBM': {
+            'n_estimators': [50, 100, 200],
+            'learning_rate': [0.01, 0.1, 0.2],
+            'max_depth': [3, 5, 7],
+            'num_leaves': [31, 50, 100]
+        },
+        'Bagging': {
+            'n_estimators': [25, 50, 100],
+            'max_samples': [0.6, 0.8, 1.0],
+            'max_features': [0.6, 0.8, 1.0]
+        },
+        'Stacking': {
+            # Stacking hyperparameters are minimal (cv folds mainly)
+            # Base estimators use default parameters
+            'cv': [3, 5]
+        }
+    }
+
+    def __init__(self, random_state=42):
+        """
+        Initialize the tuner
+
+        Args:
+            random_state: Random seed for reproducibility
+        """
+        self.random_state = random_state
+
+    def tune_model(self, X_train, y_train, model_type='classification',
+                   model_name='RandomForest', search_type='grid',
+                   cv=5, param_grid=None, verbose=True):
+        """
+        Tune hyperparameters for a specified model
+
+        Args:
+            X_train: Training features
+            y_train: Training target
+            model_type: 'classification' or 'regression'
+            model_name: Model name ('RandomForest', 'DecisionTree', 'SVC'/'SVM', 'KNN')
+            search_type: 'grid' or 'random' search
+            cv: Number of cross-validation folds
+            param_grid: Custom parameter grid (optional, uses default if None)
+            verbose: Whether to print detailed output
+
+        Returns:
+            tuple: (best_model, best_params, best_score)
+
+        Example:
+            >>> tuner = ModelTuner()
+            >>> best_model, params, score = tuner.tune_model(
+            ...     X_train, y_train,
+            ...     model_type='classification',
+            ...     model_name='RandomForest'
+            ... )
+        """
+        if verbose:
+            print("="*80)
+            print(f" "*15 + f"TUNING {model_name.upper()} ({model_type.upper()})")
+            print("="*80)
+
+        # Get base model and param grid
+        base_model, param_grid = self._get_model_and_params(
+            model_type, model_name, param_grid
+        )
+
+        # Choose scoring metric
+        # Use f1_macro for classification to optimize for balanced performance across all classes
+        # This is better than accuracy for multi-class problems, especially with class imbalance
+        scoring = 'f1_macro' if model_type == 'classification' else 'r2'
+
+        if verbose:
+            print(f"\nConfiguration:")
+            print(f"  Search type: {search_type}")
+            print(f"  CV folds: {cv}")
+            print(f"  Scoring: {scoring}")
+            print(f"  Parameter grid combinations: {self._count_combinations(param_grid)}")
+
+        # Create search object
+        if search_type == 'grid':
+            search_cv = GridSearchCV(
+                base_model,
+                param_grid,
+                cv=cv,
+                scoring=scoring,
+                n_jobs=-1,
+                verbose=0,
+                error_score='raise'
+            )
+        else:  # random search
+            search_cv = RandomizedSearchCV(
+                base_model,
+                param_grid,
+                n_iter=20,
+                cv=cv,
+                scoring=scoring,
+                n_jobs=-1,
+                verbose=0,
+                random_state=self.random_state,
+                error_score='raise'
+            )
+
+        if verbose:
+            print(f"\nData shape:")
+            print(f"  X_train: {X_train.shape}")
+            print(f"  y_train: {y_train.shape}")
+            print(f"\nStarting {search_type} search...")
+
+        # Fit the search
+        try:
+            search_cv.fit(X_train, y_train)
+        except Exception as e:
+            print(f"\n❌ ERROR during {search_type} search: {e}")
+            print(f"Error type: {type(e).__name__}")
+            raise
+
+        # Print results
+        if verbose:
+            print(f"\n{'='*80}")
+            print(" "*25 + "TUNING RESULTS")
+            print(f"{'='*80}")
+            print(f"\nBest parameters found:")
+            for param, value in search_cv.best_params_.items():
+                print(f"  {param:25s}: {value}")
+            print(f"\nBest CV {scoring} score: {search_cv.best_score_:.5f}")
+            print("="*80 + "\n")
+
+        return search_cv.best_estimator_, search_cv.best_params_, search_cv.best_score_
+
+    def tune_classification_models(self, X_train, y_train, models=None,
+                                   search_type='grid', cv=5):
+        """
+        Tune multiple classification models
+
+        Args:
+            X_train: Training features
+            y_train: Training labels
+            models: List of model names to tune (default: all)
+            search_type: 'grid' or 'random'
+            cv: Number of CV folds
+
+        Returns:
+            dict: Dictionary mapping model names to (best_model, best_params, best_score)
+
+        Example:
+            >>> tuner = ModelTuner()
+            >>> results = tuner.tune_classification_models(
+            ...     X_train, y_train,
+            ...     models=['RandomForest', 'SVC']
+            ... )
+        """
+        if models is None:
+            models = ['RandomForest', 'DecisionTree', 'SVC', 'KNN']
+
+        results = {}
+        for model_name in models:
+            best_model, best_params, best_score = self.tune_model(
+                X_train, y_train,
+                model_type='classification',
+                model_name=model_name,
+                search_type=search_type,
+                cv=cv
+            )
+            results[model_name] = (best_model, best_params, best_score)
+
+        return results
+
+    def tune_regression_models(self, X_train, y_train, models=None,
+                               search_type='grid', cv=5):
+        """
+        Tune multiple regression models
+
+        Args:
+            X_train: Training features
+            y_train: Training values
+            models: List of model names to tune (default: all)
+            search_type: 'grid' or 'random'
+            cv: Number of CV folds
+
+        Returns:
+            dict: Dictionary mapping model names to (best_model, best_params, best_score)
+
+        Example:
+            >>> tuner = ModelTuner()
+            >>> results = tuner.tune_regression_models(
+            ...     X_train, y_train,
+            ...     models=['RandomForest', 'SVM']
+            ... )
+        """
+        if models is None:
+            models = ['RandomForest', 'DecisionTree', 'SVM', 'KNN']
+
+        results = {}
+        for model_name in models:
+            best_model, best_params, best_score = self.tune_model(
+                X_train, y_train,
+                model_type='regression',
+                model_name=model_name,
+                search_type=search_type,
+                cv=cv
+            )
+            results[model_name] = (best_model, best_params, best_score)
+
+        return results
+
+    def _get_model_and_params(self, model_type, model_name, param_grid):
+        """
+        Get base model and parameter grid
+
+        Args:
+            model_type: 'classification' or 'regression'
+            model_name: Model name
+            param_grid: Custom param grid or None
+
+        Returns:
+            tuple: (base_model, param_grid)
+        """
+        # Get parameter grid
+        if param_grid is None:
+            if model_type == 'classification':
+                param_grid = self.CLF_PARAM_GRIDS.get(model_name)
+            else:  # regression
+                # Map 'SVC' to 'SVM' for regression
+                grid_name = 'SVM' if model_name == 'SVC' else model_name
+                param_grid = self.REG_PARAM_GRIDS.get(grid_name)
+
+        if param_grid is None:
+            raise ValueError(f"No parameter grid defined for {model_name} ({model_type})")
+
+        # Get base model
+        if model_type == 'classification':
+            if model_name == 'RandomForest':
+                base_model = RandomForestClassifier(random_state=self.random_state)
+            elif model_name == 'DecisionTree':
+                base_model = DecisionTreeClassifier(random_state=self.random_state)
+            elif model_name == 'SVC':
+                base_model = svm.SVC(probability=True, random_state=self.random_state)
+            elif model_name == 'KNN':
+                base_model = neighbors.KNeighborsClassifier()
+            elif model_name == 'LogisticRegression':
+                base_model = LogisticRegression(random_state=self.random_state)
+            elif model_name == 'NaiveBayes':
+                base_model = GaussianNB()
+            elif model_name == 'Bagging':
+                base_model = BaggingClassifier(
+                    estimator=DecisionTreeClassifier(),
+                    random_state=self.random_state,
+                    n_jobs=-1
+                )
+            elif model_name == 'Stacking':
+                estimators = [
+                    ('rf', RandomForestClassifier(n_estimators=100, random_state=self.random_state)),
+                    ('dt', DecisionTreeClassifier(random_state=self.random_state)),
+                    ('svc', svm.SVC(probability=True, random_state=self.random_state)),
+                    ('knn', neighbors.KNeighborsClassifier()),
+                    ('lr', LogisticRegression(max_iter=1000, random_state=self.random_state))
+                ]
+                base_model = StackingClassifier(
+                    estimators=estimators,
+                    final_estimator=LogisticRegression(max_iter=1000, random_state=self.random_state),
+                    n_jobs=-1
+                )
+            else:
+                raise ValueError(f"Unsupported classification model: {model_name}")
+        else:  # regression
+            if model_name == 'RandomForest':
+                base_model = RandomForestRegressor(random_state=self.random_state)
+            elif model_name == 'DecisionTree':
+                base_model = DecisionTreeRegressor(random_state=self.random_state)
+            elif model_name == 'SVM':
+                base_model = svm.SVR()
+            elif model_name == 'KNN':
+                base_model = neighbors.KNeighborsRegressor()
+            elif model_name == 'LinearRegression':
+                base_model = LinearRegression()
+            elif model_name == 'Ridge':
+                base_model = Ridge(random_state=self.random_state)
+            elif model_name == 'Lasso':
+                base_model = Lasso(random_state=self.random_state)
+            elif model_name == 'ElasticNet':
+                base_model = ElasticNet(random_state=self.random_state)
+            elif model_name == 'GradientBoosting':
+                base_model = GradientBoostingRegressor(random_state=self.random_state)
+            elif model_name == 'XGBoost':
+                base_model = xgb.XGBRegressor(random_state=self.random_state)
+            elif model_name == 'LightGBM':
+                base_model = lgb.LGBMRegressor(random_state=self.random_state, verbose=-1)
+            elif model_name == 'Bagging':
+                base_model = BaggingRegressor(
+                    estimator=DecisionTreeRegressor(),
+                    random_state=self.random_state,
+                    n_jobs=-1
+                )
+            elif model_name == 'Stacking':
+                estimators = [
+                    ('rf', RandomForestRegressor(n_estimators=100, random_state=self.random_state)),
+                    ('dt', DecisionTreeRegressor(random_state=self.random_state)),
+                    ('svr', svm.SVR()),
+                    ('knn', neighbors.KNeighborsRegressor()),
+                    ('ridge', Ridge(random_state=self.random_state)),
+                    ('lasso', Lasso(random_state=self.random_state))
+                ]
+                base_model = StackingRegressor(
+                    estimators=estimators,
+                    final_estimator=Ridge(random_state=self.random_state),
+                    n_jobs=-1
+                )
+            else:
+                raise ValueError(f"Unsupported regression model: {model_name}")
+
+        return base_model, param_grid
+
+    def _count_combinations(self, param_grid):
+        """
+        Count total number of parameter combinations
+
+        Args:
+            param_grid: Either a dict or a list of dicts
+
+        Returns:
+            Total number of combinations
+        """
+        # Handle list of parameter grids (e.g., LogisticRegression with solver-penalty constraints)
+        if isinstance(param_grid, list):
+            total_count = 0
+            for single_grid in param_grid:
+                count = 1
+                for values in single_grid.values():
+                    count *= len(values)
+                total_count += count
+            return total_count
+
+        # Handle single parameter grid dictionary
+        else:
+            count = 1
+            for values in param_grid.values():
+                count *= len(values)
+            return count
+
