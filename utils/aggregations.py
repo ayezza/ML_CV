@@ -1,15 +1,15 @@
 """
 Custom Aggregation Functions for Target Variable Creation
 
-This module provides various aggregation functions to combine heating_load and cooling_load
+This module provides various aggregation functions to combine two columns
 into a single target variable for regression and classification tasks.
 
 Users can define custom aggregation functions in config.py by setting:
-    CUSTOM_AGGREGATION_FUNCTION = lambda h, c: formula
+    CUSTOM_AGGREGATION_FUNCTION = lambda col1, col2: formula
 
 Example:
-    # Linear relationship: cooling = (1+a)*heating + b
-    CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (1 + 0.920) * h + 4.064
+    # Linear relationship
+    CUSTOM_AGGREGATION_FUNCTION = lambda col1, col2: (1 + 0.920) * col1 + 4.064
 """
 import numpy as np
 
@@ -23,48 +23,48 @@ def set_custom_aggregation(custom_function):
     Set a user-defined custom aggregation function
 
     Args:
-        custom_function: A callable that takes two arguments (heating, cooling)
+        custom_function: A callable that takes two arguments (col1, col2)
                         and returns aggregated values
 
     Example:
         >>> # Linear relationship from correlation analysis
-        >>> set_custom_aggregation(lambda h, c: (1 + 0.920) * h + 4.064)
+        >>> set_custom_aggregation(lambda col1, col2: (1 + 0.920) * col1 + 4.064)
     """
     global _custom_aggregation_function
     _custom_aggregation_function = custom_function
     print(f"Custom aggregation function registered: {custom_function}")
 
 
-def _seuclidean_aggregation(h, c):
+def _seuclidean_aggregation(col1, col2):
     """
     Standardized Euclidean distance aggregation.
 
-    Formula: sqrt(((h-0)²/V[h]) + ((c-0)²/V[c]))
+    Formula: sqrt(((col1-0)²/V[col1]) + ((col2-0)²/V[col2]))
     where V is the variance vector.
 
     For aggregation, we compute the distance from origin (0,0) with
     standardization by the variance of each variable.
 
     Args:
-        h: heating_load values (array-like)
-        c: cooling_load values (array-like)
+        col1: First column values (array-like)
+        col2: Second column values (array-like)
 
     Returns:
         Standardized Euclidean distance from origin
     """
     # Convert to numpy arrays
-    h = np.asarray(h)
-    c = np.asarray(c)
+    col1 = np.asarray(col1)
+    col2 = np.asarray(col2)
 
     # Compute variances (using the entire dataset)
-    var_h = np.var(h) if np.var(h) > 0 else 1.0  # Avoid division by zero
-    var_c = np.var(c) if np.var(c) > 0 else 1.0
+    var_col1 = np.var(col1) if np.var(col1) > 0 else 1.0  # Avoid division by zero
+    var_col2 = np.var(col2) if np.var(col2) > 0 else 1.0
 
     # Standardized Euclidean distance from origin
-    return np.sqrt((h**2 / var_h) + (c**2 / var_c))
+    return np.sqrt((col1**2 / var_col1) + (col2**2 / var_col2))
 
 
-def _mahalanobis_aggregation(h, c):
+def _mahalanobis_aggregation(col1, col2):
     """
     Mahalanobis distance aggregation.
 
@@ -75,18 +75,18 @@ def _mahalanobis_aggregation(h, c):
     using the covariance structure of the data.
 
     Args:
-        h: heating_load values (array-like)
-        c: cooling_load values (array-like)
+        col1: First column values (array-like)
+        col2: Second column values (array-like)
 
     Returns:
         Mahalanobis distance from origin
     """
     # Convert to numpy arrays
-    h = np.asarray(h)
-    c = np.asarray(c)
+    col1 = np.asarray(col1)
+    col2 = np.asarray(col2)
 
     # Stack into matrix for covariance calculation
-    data = np.column_stack([h, c])
+    data = np.column_stack([col1, col2])
 
     # Compute covariance matrix
     cov_matrix = np.cov(data, rowvar=False)
@@ -100,10 +100,10 @@ def _mahalanobis_aggregation(h, c):
         inv_cov_matrix = np.linalg.inv(cov_matrix)
 
     # Compute Mahalanobis distance for each point from origin
-    # For each point [h_i, c_i], compute sqrt([h_i, c_i]^T * inv_cov * [h_i, c_i])
-    result = np.zeros(len(h))
-    for i in range(len(h)):
-        point = np.array([h[i], c[i]])
+    # For each point [col1_i, col2_i], compute sqrt([col1_i, col2_i]^T * inv_cov * [col1_i, col2_i])
+    result = np.zeros(len(col1))
+    for i in range(len(col1)):
+        point = np.array([col1[i], col2[i]])
         result[i] = np.sqrt(point.T @ inv_cov_matrix @ point)
 
     return result
@@ -122,7 +122,7 @@ def get_aggregation_function(aggregation_type='sum'):
                                  'custom' (user-defined function from config.py)
 
     Returns:
-        callable: A function that takes two pandas Series/arrays (heating, cooling)
+        callable: A function that takes two pandas Series/arrays (col1, col2)
                  and returns aggregated values
 
     Raises:
@@ -131,12 +131,12 @@ def get_aggregation_function(aggregation_type='sum'):
 
     Examples:
         >>> agg_func = get_aggregation_function('manhattan')
-        >>> result = agg_func(heating_data, cooling_data)
+        >>> result = agg_func(column1_data, column2_data)
 
         >>> # Using custom function
-        >>> set_custom_aggregation(lambda h, c: (1 + 0.920) * h + 4.064)
+        >>> set_custom_aggregation(lambda col1, col2: (1 + 0.920) * col1 + 4.064)
         >>> agg_func = get_aggregation_function('custom')
-        >>> result = agg_func(heating_data, cooling_data)
+        >>> result = agg_func(column1_data, column2_data)
     """
 
     # Check if custom aggregation is requested
@@ -150,38 +150,38 @@ def get_aggregation_function(aggregation_type='sum'):
         return _custom_aggregation_function
 
     aggregations = {
-        'sum': lambda h, c: h + c,
+        'sum': lambda col1, col2: col1 + col2,
 
-        'mean': lambda h, c: 0.5 * (h + c),
+        'mean': lambda col1, col2: 0.5 * (col1 + col2),
 
-        'max': lambda h, c: np.maximum(h, c),
+        'max': lambda col1, col2: np.maximum(col1, col2),
 
-        'euclidean': lambda h, c: np.sqrt(h**2 + c**2),
+        'euclidean': lambda col1, col2: np.sqrt(col1**2 + col2**2),
 
-        'manhattan': lambda h, c: np.abs(h) + np.abs(c),
+        'manhattan': lambda col1, col2: np.abs(col1) + np.abs(col2),
 
-        'absolute_diff': lambda h, c: np.abs(h - c),
+        'absolute_diff': lambda col1, col2: np.abs(col1 - col2),
 
-        'harmonic_mean': lambda h, c: 2 / (1/h + 1/c),
+        'harmonic_mean': lambda col1, col2: 2 / (1/col1 + 1/col2),
 
-        'geometric_mean': lambda h, c: np.sqrt(h * c),
+        'geometric_mean': lambda col1, col2: np.sqrt(col1 * col2),
 
-        'weighted': lambda h, c: 0.6 * h + 0.4 * c,
+        'weighted': lambda col1, col2: 0.6 * col1 + 0.4 * col2,
 
-        'weighted_70_30': lambda h, c: 0.7 * h + 0.3 * c,
+        'weighted_70_30': lambda col1, col2: 0.7 * col1 + 0.3 * col2,
 
-        'rms': lambda h, c: np.sqrt((h**2 + c**2) / 2),
+        'rms': lambda col1, col2: np.sqrt((col1**2 + col2**2) / 2),
 
-        'power_mean_3': lambda h, c: np.cbrt(h**3 + c**3),
+        'power_mean_3': lambda col1, col2: np.cbrt(col1**3 + col2**3),
 
         # Distance metrics from scipy.spatial.distance
-        'chebyshev': lambda h, c: np.maximum(np.abs(h), np.abs(c)),
+        'chebyshev': lambda col1, col2: np.maximum(np.abs(col1), np.abs(col2)),
 
-        'minkowski': lambda h, c: np.power(np.abs(h)**3 + np.abs(c)**3, 1/3),
+        'minkowski': lambda col1, col2: np.power(np.abs(col1)**3 + np.abs(col2)**3, 1/3),
 
-        'seuclidean': lambda h, c: _seuclidean_aggregation(h, c),
+        'seuclidean': lambda col1, col2: _seuclidean_aggregation(col1, col2),
 
-        'mahalanobis': lambda h, c: _mahalanobis_aggregation(h, c),
+        'mahalanobis': lambda col1, col2: _mahalanobis_aggregation(col1, col2),
     }
 
     if aggregation_type not in aggregations:
@@ -202,21 +202,21 @@ def list_available_aggregations():
         dict: Dictionary mapping aggregation names to descriptions
     """
     aggregations = {
-        'sum': 'Simple sum: h + c',
-        'mean': 'Arithmetic mean: 0.5 * (h + c)',
-        'max': 'Maximum value: max(h, c)',
-        'euclidean': 'Euclidean distance: sqrt(h² + c²)',
-        'manhattan': 'Manhattan distance: |h| + |c|',
-        'absolute_diff': 'Absolute difference: |h - c|',
-        'harmonic_mean': 'Harmonic mean: 2 / (1/h + 1/c)',
-        'geometric_mean': 'Geometric mean: sqrt(h * c)',
-        'weighted': 'Weighted average (60-40): 0.6*h + 0.4*c',
-        'weighted_70_30': 'Weighted average (70-30): 0.7*h + 0.3*c',
-        'rms': 'Root Mean Square: sqrt((h² + c²) / 2)',
-        'power_mean_3': 'Power mean (p=3): (h³ + c³)^(1/3)',
-        'chebyshev': 'Chebyshev distance: max(|h|, |c|)',
-        'minkowski': 'Minkowski distance (p=3): (|h|³ + |c|³)^(1/3)',
-        'seuclidean': 'Standardized Euclidean: sqrt(h²/var(h) + c²/var(c))',
+        'sum': 'Simple sum: col1 + col2',
+        'mean': 'Arithmetic mean: 0.5 * (col1 + col2)',
+        'max': 'Maximum value: max(col1, col2)',
+        'euclidean': 'Euclidean distance: sqrt(col1² + col2²)',
+        'manhattan': 'Manhattan distance: |col1| + |col2|',
+        'absolute_diff': 'Absolute difference: |col1 - col2|',
+        'harmonic_mean': 'Harmonic mean: 2 / (1/col1 + 1/col2)',
+        'geometric_mean': 'Geometric mean: sqrt(col1 * col2)',
+        'weighted': 'Weighted average (60-40): 0.6*col1 + 0.4*col2',
+        'weighted_70_30': 'Weighted average (70-30): 0.7*col1 + 0.3*col2',
+        'rms': 'Root Mean Square: sqrt((col1² + col2²) / 2)',
+        'power_mean_3': 'Power mean (p=3): (col1³ + col2³)^(1/3)',
+        'chebyshev': 'Chebyshev distance: max(|col1|, |col2|)',
+        'minkowski': 'Minkowski distance (p=3): (|col1|³ + |col2|³)^(1/3)',
+        'seuclidean': 'Standardized Euclidean: sqrt(col1²/var(col1) + col2²/var(col2))',
         'mahalanobis': 'Mahalanobis distance: sqrt(x^T * Σ^-1 * x)',
         'custom': 'User-defined function (set in config.py)',
     }
