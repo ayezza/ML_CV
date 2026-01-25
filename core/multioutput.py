@@ -15,7 +15,6 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.multioutput import MultiOutputRegressor
 import xgboost as xgb
 import lightgbm as lgb
-from pathlib import Path
 
 
 class MultiOutputPredictor:
