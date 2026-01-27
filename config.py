@@ -14,8 +14,12 @@ class Config:
     OUTPUT_DIR = BASE_DIR / 'output'
 
     # Input data
-    DATA_PATH = DATA_DIR / 'bike_sharing_hour.csv' # 'ENB_data.csv'
-
+    # 'ENB_data.csv', 
+    # 'bike_sharing_hour.csv': https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset, 
+    # 'weather_data.csv'; 
+    # energydata_complete.csv: https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
+    DATA_PATH = DATA_DIR / 'ENB_data.csv' 
+    
     # Output subdirectories
     GRAPHS_DIR = OUTPUT_DIR / 'graphs'
     DATA_OUTPUT_DIR = OUTPUT_DIR / 'data'
@@ -64,7 +68,7 @@ class Config:
     REG_PREDICTIONS_DIR = REPORTS_DIR / 'regression_pred'
 
     # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['casual', 'registered']  # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
+    AGGREGATION_COLS = ['heating_load', 'cooling_load']   # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
 
     # Custom aggregation function (used when AGGREGATION_NAME = 'custom')
@@ -91,7 +95,7 @@ class Config:
     N_JOBS = -1  # Use all CPU cores
 
     # Hyperparameter tuning strategy
-    SEARCH_TYPE = 'random'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
+    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
                             # 'grid': Tests all parameter combinations (can take hours with large grids)
                             # 'random': Randomly samples 20 combinations (typically within 1-2% of optimal)
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
@@ -104,7 +108,7 @@ class Config:
     # 'qcut': Uses pd.qcut to create equal-frequency bins based on aggregated values
     # 'kmeans': Uses KMeans clustering to find natural groupings in (heating, cooling) space
     # Note: KMeans often produces better class separation and may improve classification accuracy
-    CLUSTERING_METHOD = 'qcut'  # Options: 'qcut', 'kmeans'
+    CLUSTERING_METHOD = 'kmeans'  # Options: 'qcut', 'kmeans'
 
     # Learning curve settings
     GENERATE_LEARNING_CURVES = False  # Set to False to skip learning curve generation (saves time)

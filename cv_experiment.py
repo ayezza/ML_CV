@@ -236,7 +236,7 @@ def analyze_results(df_results):
     if not clf_results.empty:
         print("\nCLASSIFICATION RESULTS:")
         print("-"*80)
-        print(clf_results[['CV_Folds', 'Tuning_Time_sec', 'Best_CV_Score', 'Test_Accuracy', 'Test_F1']].to_string(index=False))
+        print(clf_results[['model_name', 'CV_Folds', 'Tuning_Time_sec', 'Best_CV_Score', 'Test_Accuracy', 'Test_F1']].to_string(index=False))
 
         best_cv_clf = clf_results.loc[clf_results['Test_Accuracy'].idxmax()]
         print(f"\n✓ Best CV for Classification: {int(best_cv_clf['CV_Folds'])} folds")
@@ -249,7 +249,7 @@ def analyze_results(df_results):
         print("\n" + "-"*80)
         print("REGRESSION RESULTS:")
         print("-"*80)
-        print(reg_results[['CV_Folds', 'Tuning_Time_sec', 'Best_CV_Score', 'Test_R2', 'Test_RMSE']].to_string(index=False))
+        print(reg_results[['Model', 'CV_Folds', 'Tuning_Time_sec', 'Best_CV_Score', 'Test_R2', 'Test_RMSE']].to_string(index=False))
 
         best_cv_reg = reg_results.loc[reg_results['Test_R2'].idxmax()]
         print(f"\n✓ Best CV for Regression: {int(best_cv_reg['CV_Folds'])} folds")
