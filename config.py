@@ -15,9 +15,10 @@ class Config:
 
     # Input data
     # 'ENB_data.csv', 
-    # 'bike_sharing_hour.csv': https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset, 
+    # 'bike_sharing_hour.csv':  https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset, 
     # 'weather_data.csv'; 
-    # energydata_complete.csv: https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
+    # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
+    # train.csv & unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
     DATA_PATH = DATA_DIR / 'ENB_data.csv' 
     
     # Output subdirectories
