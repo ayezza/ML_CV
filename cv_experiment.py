@@ -236,7 +236,7 @@ def analyze_results(df_results):
     if not clf_results.empty:
         print("\nCLASSIFICATION RESULTS:")
         print("-"*80)
-        print(clf_results[['model_name', 'CV_Folds', 'Tuning_Time_sec', 'Best_CV_Score', 'Test_Accuracy', 'Test_F1']].to_string(index=False))
+        print(clf_results[['Model', 'CV_Folds', 'Tuning_Time_sec', 'Best_CV_Score', 'Test_Accuracy', 'Test_F1']].to_string(index=False))
 
         best_cv_clf = clf_results.loc[clf_results['Test_Accuracy'].idxmax()]
         print(f"\n✓ Best CV for Classification: {int(best_cv_clf['CV_Folds'])} folds")
