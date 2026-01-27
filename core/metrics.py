@@ -111,15 +111,26 @@ class MetricsCollector:
         # AUC-ROC (multiclass - multiple averaging strategies)
         y_test_bin = label_binarize(y_test, classes=list(range(n_classes)))
 
-        # Micro-average: aggregate all binary decisions, then compute ROC
-        fpr_micro, tpr_micro, _ = roc_curve(y_test_bin.ravel(), y_score.ravel())
+        # Handle binary classification case (label_binarize returns 1D for n_classes=2)
+        if n_classes == 2:
+            # For binary: use probability of positive class directly
+            y_score_for_roc = y_score[:, 1] if y_score.ndim > 1 else y_score
+            fpr_micro, tpr_micro, _ = roc_curve(y_test_bin.ravel(), y_score_for_roc)
+        else:
+            # For multiclass: ravel both arrays
+            fpr_micro, tpr_micro, _ = roc_curve(y_test_bin.ravel(), y_score.ravel())
         auc_roc_micro = auc(fpr_micro, tpr_micro)
 
         # Macro-average: compute AUC for each class, then average (treats all classes equally)
         auc_roc_macro = 0.0
         try:
             from sklearn.metrics import roc_auc_score
-            auc_roc_macro = roc_auc_score(y_test_bin, y_score, average='macro')
+            if n_classes == 2:
+                # Binary classification: use probability of positive class
+                y_score_binary = y_score[:, 1] if y_score.ndim > 1 else y_score
+                auc_roc_macro = roc_auc_score(y_test, y_score_binary)
+            else:
+                auc_roc_macro = roc_auc_score(y_test_bin, y_score, average='macro', multi_class='ovr')
         except Exception as e:
             print(f"[WARNING] Could not compute AUC_ROC_Macro: {e}")
             auc_roc_macro = 0.0
@@ -127,7 +138,11 @@ class MetricsCollector:
         # Weighted-average: compute AUC for each class, then weighted average by class frequency
         auc_roc_weighted = 0.0
         try:
-            auc_roc_weighted = roc_auc_score(y_test_bin, y_score, average='weighted')
+            if n_classes == 2:
+                # Binary classification: weighted = macro for binary
+                auc_roc_weighted = auc_roc_macro
+            else:
+                auc_roc_weighted = roc_auc_score(y_test_bin, y_score, average='weighted', multi_class='ovr')
         except Exception as e:
             print(f"[WARNING] Could not compute AUC_ROC_Weighted: {e}")
             auc_roc_weighted = 0.0

@@ -540,8 +540,8 @@ class DataPreprocessor:
         if self.df is None:
             raise ValueError("Data not loaded. Call load_data() first.")
 
-        # Define feature columns (exclude target variables)
-        exclude_cols = [self.class_var_name, self.aggregated_var_name]
+        # Define feature columns (exclude target variables AND aggregation columns)
+        exclude_cols = [self.class_var_name, self.aggregated_var_name] + list(self.aggregation_cols or [])
         feature_cols = [col for col in self.df.columns if col not in exclude_cols]
 
         X = self.df[feature_cols]
@@ -553,10 +553,17 @@ class DataPreprocessor:
         print("="*80)
         print(f"\nOriginal Features (X): {X.shape}")
         print(f"  Columns: {feature_cols}")
+        if self.aggregation_cols:
+            print(f"  (Excluded aggregation columns: {list(self.aggregation_cols)})")
 
         # Handle non-numeric columns (dates, strings, etc.)
         X = self._handle_non_numeric_columns(X)
         final_feature_cols = X.columns.tolist()
+
+        # Reset indices to ensure alignment between X and y
+        X = X.reset_index(drop=True)
+        y_classification = y_classification.reset_index(drop=True)
+        y_regression = y_regression.reset_index(drop=True)
 
         print(f"\nProcessed Features (X): {X.shape}")
         print(f"  Columns: {final_feature_cols}")

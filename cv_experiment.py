@@ -93,6 +93,10 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
         random_state=Config.RANDOM_STATE
     )
 
+    # Get actual number of classes (important when N_CLASSES='auto')
+    actual_n_classes = len(y_classification.unique())
+    print(f"Actual number of classes: {actual_n_classes}")
+
     # REGRESSION Standardize features by scaling to allow models like SVM to perform better (using Gradient Descent algorithms)
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
@@ -138,7 +142,7 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
             y_score = best_model.predict_proba(X_test) if hasattr(best_model, 'predict_proba') else None
 
             test_metrics = metrics_collector.collect_classification_metrics(
-                y_test_clf, y_pred, y_score
+                y_test_clf, y_pred, y_score, n_classes=actual_n_classes
             )
 
             results.append({

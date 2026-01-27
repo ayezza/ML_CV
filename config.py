@@ -91,7 +91,7 @@ class Config:
     N_JOBS = -1  # Use all CPU cores
 
     # Hyperparameter tuning strategy
-    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
+    SEARCH_TYPE = 'random'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
                             # 'grid': Tests all parameter combinations (can take hours with large grids)
                             # 'random': Randomly samples 20 combinations (typically within 1-2% of optimal)
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
@@ -104,7 +104,7 @@ class Config:
     # 'qcut': Uses pd.qcut to create equal-frequency bins based on aggregated values
     # 'kmeans': Uses KMeans clustering to find natural groupings in (heating, cooling) space
     # Note: KMeans often produces better class separation and may improve classification accuracy
-    CLUSTERING_METHOD = 'kmeans'  # Options: 'qcut', 'kmeans'
+    CLUSTERING_METHOD = 'qcut'  # Options: 'qcut', 'kmeans'
 
     # Learning curve settings
     GENERATE_LEARNING_CURVES = False  # Set to False to skip learning curve generation (saves time)
