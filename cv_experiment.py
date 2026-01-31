@@ -31,6 +31,9 @@ Usage:
 import sys
 from pathlib import Path
 
+from visualization.analysis import plot_feature_distributions
+from visualization.cv_analysis import generate_cv_analysis_report
+
 # Add parent directory to Python path
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
@@ -72,9 +75,9 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
 
     # Load and prepare data
     preprocessor = DataPreprocessor(
-        data_path=Config.DATA_PATH,
-        aggregation_cols=Config.AGGREGATION_COLS,
-        aggregation_name=Config.AGGREGATION_NAME
+        data_path=Config.DATA_PATH,                 # dataset path as './data/dataset.csv'
+        aggregation_cols=Config.AGGREGATION_COLS,   # columns to aggregate on
+        aggregation_name=Config.AGGREGATION_NAME    # name for the aggregation function
     )
     preprocessor.load_data()
     # preprocessor.(aggregation_name=Config.AGGREGATION_NAME)
@@ -322,6 +325,7 @@ def save_results(df_results, output_path='./output/cv_experiment_results.xlsx'):
     print(f"\n✓ Results saved to: {output_file}")
 
 
+
 if __name__ == '__main__':
     
     # Parse command-line arguments
@@ -400,10 +404,10 @@ if __name__ == '__main__':
             print(f"\n[{i}/{len(classification_models)}] Testing {model_name}...")
             try:
                 df_model = run_cv_experiment(
-                    cv_values=cv_values_to_test,  # Use command-line CV values if any
-                    model_name=model_name,
+                    cv_values=cv_values_to_test,  # Use command-line CV values if any, space separated
+                    model_name=model_name, # use command-line model if any, space separated
                     test_classification=True,
-                    test_regression=False  # Classification models only
+                    test_regression=False  # Classification models only, skip regression
                 )
                 all_results.append(df_model)
                 analyze_results(df_model)
@@ -443,6 +447,35 @@ if __name__ == '__main__':
         print("SUMMARY OF ALL MODELS")
         print("="*80)
         analyze_results(df_all)
+
+        # Generate CV analysis visualizations
+        print("\n" + "="*80)
+        print("GENERATING CV ANALYSIS VISUALIZATIONS")
+        print("="*80)
+
+        cv_graphs_dir = Config.OUTPUT_DIR / 'graphs' / 'cv_analysis'
+
+        # Generate visualizations for classification
+        if task_type in ['classification', 'both']:
+            clf_results = df_all[df_all['Task'] == 'Classification']
+            if not clf_results.empty:
+                generate_cv_analysis_report(
+                    clf_results,
+                    cv_graphs_dir / 'classification',
+                    task_type='classification'
+                )
+
+        # Generate visualizations for regression
+        if task_type in ['regression', 'both']:
+            reg_results = df_all[df_all['Task'] == 'Regression']
+            if not reg_results.empty:
+                generate_cv_analysis_report(
+                    reg_results,
+                    cv_graphs_dir / 'regression',
+                    task_type='regression'
+                )
+
+        print(f"\nAll CV analysis graphs saved to: {cv_graphs_dir}")
 
     print("\n" + "="*80)
     print("RECOMMENDATION:")

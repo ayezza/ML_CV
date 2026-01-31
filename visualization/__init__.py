@@ -28,6 +28,15 @@ from .analysis import (
     # Legacy names
     target_variable_analysis
 )
+from .cv_analysis import (
+    plot_cv_comparison_bars,
+    plot_cv_trend_lines,
+    plot_cv_heatmap,
+    plot_cv_tuning_time,
+    plot_cv_best_params_summary,
+    plot_cv_metrics_comparison,
+    generate_cv_analysis_report
+)
 
 __version__ = '1.0.0'
 
@@ -53,4 +62,12 @@ __all__ = [
     'plot_pairplot',
     'plot_boxplots',
     'target_variable_analysis',
+    # CV Analysis
+    'plot_cv_comparison_bars',
+    'plot_cv_trend_lines',
+    'plot_cv_heatmap',
+    'plot_cv_tuning_time',
+    'plot_cv_best_params_summary',
+    'plot_cv_metrics_comparison',
+    'generate_cv_analysis_report',
 ]
