@@ -100,16 +100,22 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
     actual_n_classes = len(y_classification.unique())
     print(f"Actual number of classes: {actual_n_classes}")
 
-    # REGRESSION Standardize features by scaling to allow models like SVM to perform better (using Gradient Descent algorithms)
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)    
+    # Standardize features by scaling - IMPORTANT for models using gradient descent
+    # (LogisticRegression, SVC, Lasso, ElasticNet, Ridge with saga solver, etc.)
+    scaler_clf = StandardScaler()
+    X_train = scaler_clf.fit_transform(X_train)
+    X_test = scaler_clf.transform(X_test)
 
     X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
         X, y_regression,
         test_size=Config.TEST_SIZE,
         random_state=Config.RANDOM_STATE
     )
+
+    # Scale regression data separately (same random split, fresh scaler)
+    scaler_reg = StandardScaler()
+    X_train_reg = scaler_reg.fit_transform(X_train_reg)
+    X_test_reg = scaler_reg.transform(X_test_reg)
 
     results = []
 

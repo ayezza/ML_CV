@@ -61,11 +61,12 @@ class ModelTuner:
         'LogisticRegression': [
             # saga and liblinear solvers support l1, l2, elasticnet, and none penalties with different constraints:
             # Note: Increased max_iter to 5000 to avoid ConvergenceWarning
+            # Note: When penalty=None, C is ignored (no regularization), so we don't include C in those grids
 
             # lbfgs: only l2 or None (fast, good for small datasets)
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['lbfgs'],
              'max_iter': [5000], 'class_weight': [None, 'balanced']},
-            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': [None], 'solver': ['lbfgs'],
+            {'penalty': [None], 'solver': ['lbfgs'],  # No C when penalty=None
              'max_iter': [5000], 'class_weight': [None, 'balanced']},
 
             # liblinear: l1 or l2 (no elasticnet, no None) - good for high-dimensional sparse data
@@ -81,7 +82,7 @@ class ModelTuner:
              'max_iter': [5000], 'class_weight': [None, 'balanced']},
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['elasticnet'], 'solver': ['saga'],
              'l1_ratio': [0.3, 0.5, 0.7], 'max_iter': [5000], 'class_weight': [None, 'balanced']},
-            {'C': [0.01, 0.1, 1, 10, 100], 'penalty': [None], 'solver': ['saga'],
+            {'penalty': [None], 'solver': ['saga'],  # No C when penalty=None
              'max_iter': [5000], 'class_weight': [None, 'balanced']},
         ],
         'NaiveBayes': {
@@ -128,45 +129,52 @@ class ModelTuner:
             'metric': ['euclidean', 'manhattan']
         },
         'LinearRegression': {
-            # LinearRegression has no hyperparameters to tune!
-            # This is a placeholder - tuning will just return the base model
+            # LinearRegression has minimal hyperparameters
+            # Using fit_intercept as a placeholder to enable grid search
+            'fit_intercept': [True],  # Whether to calculate intercept (almost always True)
+            'copy_X': [True],  # Keep default to preserve input data
         },
         'Ridge': {
-            'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
-            'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'saga'],
-            'max_iter': [5000]  # Increased to avoid ConvergenceWarning (for saga solver only)
+            'alpha': [0.001, 0.01, 0.1, 1.0],
+            'solver': ['svd', 'cholesky', 'lsqr', 'saga'],
+            'max_iter': [10000]  # Increased to avoid ConvergenceWarning (for saga solver only)
         },
         'Lasso': {
-            'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
+            # Note: Very small alpha (weak regularization) can cause convergence issues
+            # Increased min alpha from 1e-7 to 0.001 for better convergence
+            'alpha': [0.001, 0.01, 0.1, 1.0],
             'selection': ['cyclic', 'random'],
-            'max_iter': [5000]  # Increased to avoid ConvergenceWarning
+            'max_iter': [10000],
+            'tol': [1e-4]  # Default tolerance
         },
         'ElasticNet': {
-            'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
-            'l1_ratio': [0.1, 0.5, 0.7, 1.0],
+            # Note: Very small alpha (weak regularization) can cause convergence issues
+            'alpha': [0.001, 0.01, 0.1, 1.0],
+            'l1_ratio': [0.1, 0.5, 0.7, 0.9],
             'selection': ['cyclic', 'random'],
-            'max_iter': [5000]  # Increased to avoid ConvergenceWarning
+            'max_iter': [10000],
+            'tol': [1e-4]  # Default tolerance
         },
         'GradientBoosting': {
-            'n_estimators': [50, 100, 200],
-            'learning_rate': [0.01, 0.1, 0.2],
+            'n_estimators': [50, 100, 200, 250],
+            'learning_rate': [0.01, 0.1, 0.2, 0.3, 0.5],
             'max_depth': [3, 5, 7],
             'min_samples_split': [2, 5, 10]
         },
         'XGBoost': {
-            'n_estimators': [50, 100, 200],
+            'n_estimators': [50, 100, 200, 250],
             'learning_rate': [0.01, 0.1, 0.2],
             'max_depth': [3, 5, 7],
             'min_child_weight': [1, 3, 5]
         },
         'LightGBM': {
-            'n_estimators': [50, 100, 200],
+            'n_estimators': [50, 100, 200, 250],
             'learning_rate': [0.01, 0.1, 0.2],
             'max_depth': [3, 5, 7],
             'num_leaves': [31, 50, 100]
         },
         'Bagging': {
-            'n_estimators': [25, 50, 100],
+            'n_estimators': [25, 50, 100, 200],
             'max_samples': [0.6, 0.8, 1.0],
             'max_features': [0.6, 0.8, 1.0]
         },
