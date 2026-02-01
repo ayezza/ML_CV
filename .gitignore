@@ -180,4 +180,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Claude AI files and docs temp files
 .claude/
+./docs/*.docx
+./docs/temp*.*
+./docs/~$*
