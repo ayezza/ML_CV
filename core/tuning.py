@@ -60,28 +60,29 @@ class ModelTuner:
         },
         'LogisticRegression': [
             # saga and liblinear solvers support l1, l2, elasticnet, and none penalties with different constraints:
+            # Note: Increased max_iter to 5000 to avoid ConvergenceWarning
 
-            # lbfgs: only l2 or None
+            # lbfgs: only l2 or None (fast, good for small datasets)
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['lbfgs'],
-             'max_iter': [1000, 2000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': [None], 'solver': ['lbfgs'],
-             'max_iter': [1000, 2000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
 
-            # liblinear: l1 or l2 (no elasticnet, no None)
+            # liblinear: l1 or l2 (no elasticnet, no None) - good for high-dimensional sparse data
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l1'], 'solver': ['liblinear'],
-             'max_iter': [1000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['liblinear'],
-             'max_iter': [1000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
 
-            # saga: all penalties (l1, l2, elasticnet, None)
+            # saga: all penalties (l1, l2, elasticnet, None) - best for large datasets
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l1'], 'solver': ['saga'],
-             'max_iter': [2000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['saga'],
-             'max_iter': [2000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['elasticnet'], 'solver': ['saga'],
-             'l1_ratio': [0.3, 0.5, 0.7], 'max_iter': [2000], 'class_weight': [None, 'balanced']},
+             'l1_ratio': [0.3, 0.5, 0.7], 'max_iter': [5000], 'class_weight': [None, 'balanced']},
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': [None], 'solver': ['saga'],
-             'max_iter': [2000], 'class_weight': [None, 'balanced']},
+             'max_iter': [5000], 'class_weight': [None, 'balanced']},
         ],
         'NaiveBayes': {
             'var_smoothing': [1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4],  # Extended range (more values)
@@ -132,16 +133,19 @@ class ModelTuner:
         },
         'Ridge': {
             'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
-            'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'saga']
+            'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'saga'],
+            'max_iter': [5000]  # Increased to avoid ConvergenceWarning (for saga solver only)
         },
         'Lasso': {
             'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
-            'selection': ['cyclic', 'random']
+            'selection': ['cyclic', 'random'],
+            'max_iter': [5000]  # Increased to avoid ConvergenceWarning
         },
         'ElasticNet': {
             'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
             'l1_ratio': [0.1, 0.5, 0.7, 1.0],
-            'selection': ['cyclic', 'random']
+            'selection': ['cyclic', 'random'],
+            'max_iter': [5000]  # Increased to avoid ConvergenceWarning
         },
         'GradientBoosting': {
             'n_estimators': [50, 100, 200],
