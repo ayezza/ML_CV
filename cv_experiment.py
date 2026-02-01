@@ -113,9 +113,16 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
     )
 
     # Scale regression data separately (same random split, fresh scaler)
+    # Preserve feature names to avoid LightGBM/XGBoost warnings
+    feature_names_reg = X_train_reg.columns.tolist() if hasattr(X_train_reg, 'columns') else None
     scaler_reg = StandardScaler()
     X_train_reg = scaler_reg.fit_transform(X_train_reg)
     X_test_reg = scaler_reg.transform(X_test_reg)
+
+    # Convert back to DataFrame to preserve feature names (avoids LightGBM warnings)
+    if feature_names_reg:
+        X_train_reg = pd.DataFrame(X_train_reg, columns=feature_names_reg)
+        X_test_reg = pd.DataFrame(X_test_reg, columns=feature_names_reg)
 
     results = []
 
