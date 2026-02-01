@@ -13,14 +13,15 @@ class Config:
     DATA_DIR = BASE_DIR / 'data'
     OUTPUT_DIR = BASE_DIR / 'output'
 
-    # Input datasets paths
+    # Input datasets paths that can be used for testing
+    # /////////////////////////////////////////////////////////////////////////////////////
     # ENB_data.csv: https://www.kaggle.com/datasets/elikplim/eergy-efficiency-dataset, 
     # bike_sharing_hour.csv:  https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset, 
     # weather_data.csv: https://www.kaggle.com/datasets/muthuj7/weather-dataset,
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
-    # train.csv & unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'bike_sharing_hour.csv' 
+    # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
+    DATA_PATH = DATA_DIR / 'ENB_data.csv' 
     
     # Output subdirectories
     GRAPHS_DIR = OUTPUT_DIR / 'graphs'
@@ -70,7 +71,7 @@ class Config:
     REG_PREDICTIONS_DIR = REPORTS_DIR / 'regression_pred'
 
     # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['casual', 'registered']   # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
+    AGGREGATION_COLS = ['heating_load', 'cooling_load']   # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
 
     # Custom aggregation function (used when AGGREGATION_NAME = 'custom')
