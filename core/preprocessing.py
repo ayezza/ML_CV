@@ -422,22 +422,39 @@ class DataPreprocessor:
         return self.df, self.target_classes
 
     def _get_aggregation_formula(self):
-        """Get human-readable formula for current aggregation"""
+        """
+        Get human-readable formula for current aggregation.
+
+        Returns:
+            str: Mathematical formula using actual column names
+        """
+        # Use actual column names or generic names
+        if self.aggregation_cols and len(self.aggregation_cols) >= 2:
+            a = self.aggregation_cols[0]
+            b = self.aggregation_cols[1]
+        else:
+            a, b = 'col1', 'col2'
+
         formulas = {
-            'sum': '+ cooling_load',
-            'mean': '+ cooling_load) / 2',
-            'max': 'vs cooling_load (maximum)',
-            'euclidean': '² + cooling_load² (square root)',
-            'manhattan': '| + |cooling_load|',
-            'absolute_diff': '- cooling_load| (absolute)',
-            'harmonic_mean': 'and cooling_load (harmonic mean)',
-            'geometric_mean': '* cooling_load (square root)',
-            'weighted': '* 0.6 + cooling_load * 0.4',
-            'weighted_70_30': '* 0.7 + cooling_load * 0.3',
-            'rms': '² + cooling_load²) / 2 (square root)',
-            'power_mean_3': '³ + cooling_load³ (cube root)',
+            'sum': f'{self.aggregation_name}({a}, {b}) = {a} + {b}',
+            'mean': f'{self.aggregation_name}({a}, {b}) = ({a} + {b}) / 2',
+            'max': f'{self.aggregation_name}({a}, {b}) = max({a}, {b})',
+            'euclidean': f'{self.aggregation_name}({a}, {b}) = sqrt({a}² + {b}²)',
+            'manhattan': f'{self.aggregation_name}({a}, {b}) = |{a}| + |{b}|',
+            'absolute_diff': f'{self.aggregation_name}({a}, {b}) = |{a} - {b}|',
+            'harmonic_mean': f'{self.aggregation_name}({a}, {b}) = 2 / (1/{a} + 1/{b})',
+            'geometric_mean': f'{self.aggregation_name}({a}, {b}) = sqrt({a} * {b})',
+            'weighted': f'{self.aggregation_name}({a}, {b}) = 0.6*{a} + 0.4*{b}',
+            'weighted_70_30': f'{self.aggregation_name}({a}, {b}) = 0.7*{a} + 0.3*{b}',
+            'rms': f'{self.aggregation_name}({a}, {b}) = sqrt(({a}² + {b}²) / 2)',
+            'power_mean_3': f'{self.aggregation_name}({a}, {b}) = cbrt({a}³ + {b}³)',
+            'chebyshev': f'{self.aggregation_name}({a}, {b}) = max(|{a}|, |{b}|)',
+            'minkowski': f'{self.aggregation_name}({a}, {b}) = (|{a}|³ + |{b}|³)^(1/3)',
+            'seuclidean': f'{self.aggregation_name}({a}, {b}) = sqrt({a}²/var({a}) + {b}²/var({b}))',
+            'mahalanobis': f'{self.aggregation_name}({a}, {b}) = sqrt([{a},{b}]ᵀ * Σ⁻¹ * [{a},{b}])',
+            'custom': f'custom({a}, {b}) = user-defined function',
         }
-        return formulas.get(self.aggregation_name, 'custom aggregation')
+        return formulas.get(self.aggregation_name, f'{self.aggregation_name}({a}, {b})')
 
     def save_preprocessed_data(self, output_path):
         """

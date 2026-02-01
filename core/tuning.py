@@ -28,7 +28,7 @@ class ModelTuner:
     # We can reduce the number of options for faster tuning or expand them for better results depending on your machine capabilities
     CLF_PARAM_GRIDS = {
         'RandomForest': {
-            'n_estimators': [49, 50, 100, 150, 200],
+            'n_estimators': [50, 100, 200],
             'max_depth': [None, 5, 6, 7, 10],
             'min_samples_split': [2, 5, 10, 12],
             'min_samples_leaf': [1, 2, 4, 6, 8],
@@ -36,8 +36,8 @@ class ModelTuner:
         },
         'DecisionTree': {
             'max_depth': [None, 5, 6, 7, 10],
-            'min_samples_split': [2, 5, 10, 12],
-            'min_samples_leaf': [1, 2, 4, 6, 8],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4, 6],
             'criterion': ['gini', 'entropy'],
             'max_features': ['sqrt', 'log2', None]
         },
@@ -59,6 +59,8 @@ class ModelTuner:
             'metric': ['euclidean', 'manhattan', 'minkowski']
         },
         'LogisticRegression': [
+            # saga and liblinear solvers support l1, l2, elasticnet, and none penalties with different constraints:
+
             # lbfgs: only l2 or None
             {'C': [0.01, 0.1, 1, 10, 100], 'penalty': ['l2'], 'solver': ['lbfgs'],
              'max_iter': [1000, 2000], 'class_weight': [None, 'balanced']},
@@ -100,10 +102,10 @@ class ModelTuner:
     # Regression parameter grids
     REG_PARAM_GRIDS = {
         'RandomForest': {
-            'n_estimators': [49, 50, 100, 200, 250],
+            'n_estimators': [30, 50, 100, 200, 250],
             'max_depth': [None, 5, 6, 7, 10, 15],
-            'min_samples_split': [2, 5, 10, 12],
-            'min_samples_leaf': [1, 2, 4, 8, 10],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4, 6, 8],
         },
         'DecisionTree': {
             'max_depth': [None, 5, 6, 7, 10],
@@ -119,30 +121,25 @@ class ModelTuner:
             'epsilon': [0.01]  # Epsilon-tube width (smaller = tighter fit)
             #'degree': [2]  # Only for poly kernel
         },
-        #'KNN': {
-        #    'n_neighbors': [3, 5, 7, 9, 11, 15],
-        #    'weights': ['uniform', 'distance'],
-        #    'metric': ['euclidean', 'manhattan']
-        #},
         'KNN': {
             'n_neighbors': [3, 5, 7, 9, 11, 15],
             'weights': ['uniform', 'distance'],
             'metric': ['euclidean', 'manhattan']
         },
         'LinearRegression': {
-            # LinearRegression has no hyperparameters to tune
+            # LinearRegression has no hyperparameters to tune!
             # This is a placeholder - tuning will just return the base model
         },
         'Ridge': {
-            'alpha': [0.00001, 0.01, 0.1],
+            'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
             'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'saga']
         },
         'Lasso': {
-            'alpha': [0.00001, 0.01, 0.1],
+            'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
             'selection': ['cyclic', 'random']
         },
         'ElasticNet': {
-            'alpha': [0.00001, 0.01, 0.10],
+            'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
             'l1_ratio': [0.1, 0.5, 0.7, 1.0],
             'selection': ['cyclic', 'random']
         },
