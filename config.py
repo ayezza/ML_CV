@@ -21,8 +21,67 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'ENB_data.csv' 
+    DATA_PATH = DATA_DIR / 'weather_data.csv' 
     
+    # Aggregation settings (replace the value for testing)
+    AGGREGATION_COLS = ['Temperature (C)']   # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
+    # these columns must exist in the dataset
+
+    # Columns to exclude from features (will not be used for training)
+    EXCLUDE_COLS = ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
+
+    # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
+    AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
+
+    # Custom aggregation function (used when AGGREGATION_NAME = 'custom')
+    CUSTOM_AGGREGATION_FUNCTION = lambda h, c: .920 * h + 4.064  # c not used - derived from h
+
+    # Example 2: Use both variables with custom weights
+    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (1 + 0.920) * h + 4.064  # Same as above
+    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: h * 1.5 + c * 0.5        # Custom weighted average
+    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (h + c) / 2 + 10         # Mean with offset
+    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: h**2 + c**2              # Sum of squares
+
+    # Model settings
+    RANDOM_STATE = 42
+    TEST_SIZE = 0.2
+    CV_FOLDS = 10  # Cross-validation folds for hyperparameter tuning
+                  # Options: 3 (fast), 5 (balanced - recommended), 10 (reliable but slower)
+                  # Run cv_experiment.py to test which CV value works best for your data (CV=3 seems fast and gives almost the same results as CV=5)
+    N_JOBS = -1  # Use all CPU cores
+
+    # Hyperparameter tuning strategy
+    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
+                            # 'grid': Tests all parameter combinations (can take hours with large grids)
+                            # 'random': Randomly samples 20 combinations (typically within 1-2% of optimal)
+                            # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
+
+    # Classification settings
+    N_CLASSES = 'auto'  # Number of classes for classification (computed based on data if 'auto')
+
+    # Categorical encoding settings
+    # Columns with unique values <= threshold will be encoded (label or onehot)
+    # Columns with unique values > threshold will be dropped (too many categories)
+    CATEGORICAL_ENCODING_THRESHOLD = 10  # Max unique values for encoding
+    CATEGORICAL_ENCODING_METHOD = 'label'  # Options: 'label' (LabelEncoder) or 'onehot' (OneHotEncoder)
+
+    # Clustering method for creating classification labels
+    # Options: 'qcut' (default - predefined bins) or 'kmeans' (natural clusters)
+    # 'qcut': Uses pd.qcut to create equal-frequency bins based on aggregated values
+    # 'kmeans': Uses KMeans clustering to find natural groupings in (heating, cooling) space
+    # Note: KMeans often produces better class separation and may improve classification accuracy
+    CLUSTERING_METHOD = 'kmeans'  # Options: 'qcut', 'kmeans'
+
+    # Learning curve settings
+    GENERATE_LEARNING_CURVES = False  # Set to False to skip learning curve generation (saves time)
+    # Training set size fractions for learning curves
+    LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]  
+    # or LEARNING_CURVE_TRAIN_SIZES = np.linspace(0.1, 1.0, 10)
+
+    GENERATE_PREDS = False  # Whether to save model predictions to CSV files
+
+
+
     # Output subdirectories
     GRAPHS_DIR = OUTPUT_DIR / 'graphs'
     DATA_OUTPUT_DIR = OUTPUT_DIR / 'data'
@@ -70,56 +129,7 @@ class Config:
     CLF_PREDICTIONS_DIR = REPORTS_DIR / 'classification_pred'
     REG_PREDICTIONS_DIR = REPORTS_DIR / 'regression_pred'
 
-    # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['heating_load', 'cooling_load']   # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
-    AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
-
-    # Custom aggregation function (used when AGGREGATION_NAME = 'custom')
-    # Define your own formula based on heating_load (h) and cooling_load (c)
-    #
-    # Example 1: Linear relationship from correlation analysis (c is not used)
-    #            cooling_load = a * heating_load + b
-    #            where a = 0.920, b = 4.064 (from linear regression: test_bimodality.py)
-    #            Aggregation formula: (1 + a) * h + b = 1.920 * h + 4.064
-    CUSTOM_AGGREGATION_FUNCTION = lambda h, c: .920 * h + 4.064  # c not used - derived from h
-
-    # Example 2: Use both variables with custom weights
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (1 + 0.920) * h + 4.064  # Same as above
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: h * 1.5 + c * 0.5        # Custom weighted average
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (h + c) / 2 + 10         # Mean with offset
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: h**2 + c**2              # Sum of squares
-
-    # Model settings
-    RANDOM_STATE = 42
-    TEST_SIZE = 0.2
-    CV_FOLDS = 10  # Cross-validation folds for hyperparameter tuning
-                  # Options: 3 (fast), 5 (balanced - recommended), 10 (reliable but slower)
-                  # Run cv_experiment.py to test which CV value works best for your data (CV=3 seems fast and gives almost the same results as CV=5)
-    N_JOBS = -1  # Use all CPU cores
-
-    # Hyperparameter tuning strategy
-    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
-                            # 'grid': Tests all parameter combinations (can take hours with large grids)
-                            # 'random': Randomly samples 20 combinations (typically within 1-2% of optimal)
-                            # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
-
-    # Classification settings
-    N_CLASSES = 'auto'  # Number of classes for classification (computed based on data if 'auto')
-
-    # Clustering method for creating classification labels
-    # Options: 'qcut' (default - predefined bins) or 'kmeans' (natural clusters)
-    # 'qcut': Uses pd.qcut to create equal-frequency bins based on aggregated values
-    # 'kmeans': Uses KMeans clustering to find natural groupings in (heating, cooling) space
-    # Note: KMeans often produces better class separation and may improve classification accuracy
-    CLUSTERING_METHOD = 'kmeans'  # Options: 'qcut', 'kmeans'
-
-    # Learning curve settings
-    GENERATE_LEARNING_CURVES = False  # Set to False to skip learning curve generation (saves time)
-    # Training set size fractions for learning curves
-    LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]  
-    # or LEARNING_CURVE_TRAIN_SIZES = np.linspace(0.1, 1.0, 10)
-
-    GENERATE_PREDS = False  # Whether to save model predictions to CSV files
+    
 
 
     # Plot settings

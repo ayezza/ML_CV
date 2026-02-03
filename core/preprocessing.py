@@ -3,14 +3,16 @@ Data Preprocessing Module
 
 This module handles data loading, preprocessing, and feature engineering.
 """
+import warnings
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from utils.aggregations import get_aggregation_function
 # Metrics for clustering evaluation
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+from config import Config
 
 
 class DataPreprocessor:
@@ -337,26 +339,39 @@ class DataPreprocessor:
         if self.df is None:
             raise ValueError("Data not loaded. Call load_data() first.")
 
+        # Check if single column (no aggregation needed) or multiple columns
+        n_agg_cols = len(self.aggregation_cols) if self.aggregation_cols else 0
+
+        if n_agg_cols == 0:
+            raise ValueError("No aggregation columns specified. Set AGGREGATION_COLS in config.")
+
         # Handle 'auto' n_classes - find optimal k
         if n_classes == 'auto':
             result = self.find_optimal_n_classes(k_range=(2, 10), method=auto_k_method)
             n_classes = result['optimal_k']
             print(f"Using automatically determined n_classes={n_classes}")
 
-        # Get aggregation function
-        aggregation_func = get_aggregation_function(self.aggregation_name)
+        if n_agg_cols == 1:
+            # Single column - no aggregation needed, use column directly
+            target_col = self.aggregation_cols[0]
+            print(f"\nSingle target column: '{target_col}' (no aggregation needed)")
+            self.df[self.aggregated_var_name] = self.df[target_col]
+            print(f"\nFirst 5 rows of target '{target_col}':")
+            print(self.df[[target_col]].head())
+        else:
+            # Multiple columns - apply aggregation function
+            aggregation_func = get_aggregation_function(self.aggregation_name)
+            print(f"\nUsing aggregation: {self.aggregation_name}")
+            print(f"Formula: {self._get_aggregation_formula()}")
 
-        print(f"\nUsing aggregation: {self.aggregation_name}")
-        print(f"Formula: {self._get_aggregation_formula()}")
+            # Create aggregated target
+            self.df[self.aggregated_var_name] = aggregation_func(
+                self.df[self.aggregation_cols[0]],
+                self.df[self.aggregation_cols[1]]
+            )
 
-        # Create aggregated target
-        self.df[self.aggregated_var_name] = aggregation_func(
-            self.df[self.aggregation_cols[0]],
-            self.df[self.aggregation_cols[1]]
-        )
-
-        print("\nFirst 5 rows with charges_sum:")
-        print(self.df[[self.aggregation_cols[0], self.aggregation_cols[1], self.aggregated_var_name]].head())
+            print("\nFirst 5 rows with aggregated target:")
+            print(self.df[[self.aggregation_cols[0], self.aggregation_cols[1], self.aggregated_var_name]].head())
 
         # Create classification classes based on specified method
         print(f"\nClustering method: {clustering_method.upper()}")
@@ -365,8 +380,12 @@ class DataPreprocessor:
             # Use KMeans clustering on target_vars space
             print(f"Using KMeans clustering to find {n_classes} natural clusters...")
 
-            # Prepare data for clustering
-            X = self.df[[self.aggregation_cols[0], self.aggregation_cols[1]]].values
+            # Prepare data for clustering (handle single or multiple columns)
+            if n_agg_cols == 1:
+                X = self.df[[self.aggregation_cols[0]]].values
+            else:
+                X = self.df[self.aggregation_cols].values
+
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
 
@@ -392,8 +411,12 @@ class DataPreprocessor:
             centers = scaler.inverse_transform(centers_scaled)
 
             print(f"\n  Cluster centers {self.aggregation_cols}:")
-            for i, (col1, col2) in enumerate(centers):
-                print(f"    Cluster {i}: ({col1:.2f}, {col2:.2f})")
+            if n_agg_cols == 1:
+                for i, center in enumerate(centers):
+                    print(f"    Cluster {i}: ({center[0]:.2f})")
+            else:
+                for i, center in enumerate(centers):
+                    print(f"    Cluster {i}: ({', '.join(f'{v:.2f}' for v in center)})")
 
         else:  # pandas qcut (default)
             # Use quantile-based binning on aggregated values
@@ -428,7 +451,12 @@ class DataPreprocessor:
         Returns:
             str: Mathematical formula using actual column names
         """
-        # Use actual column names or generic names
+        # Handle single column case (no aggregation)
+        if self.aggregation_cols and len(self.aggregation_cols) == 1:
+            col = self.aggregation_cols[0]
+            return f"target = {col} (no aggregation)"
+
+        # Use actual column names or generic names for multi-column
         if self.aggregation_cols and len(self.aggregation_cols) >= 2:
             a = self.aggregation_cols[0]
             b = self.aggregation_cols[1]
@@ -480,30 +508,47 @@ class DataPreprocessor:
 
         return output_path
 
-    def _handle_non_numeric_columns(self, df):
+    def _handle_non_numeric_columns(self, df, encoding_threshold=10, encoding_method='label', exclude_cols=None):
         """
-        Handle non-numeric columns by converting dates to features and dropping others.
+        Handle non-numeric columns by converting dates to features and encoding categoricals.
 
+        - Excluded columns (from EXCLUDE_COLS): Dropped without processing
         - Date/datetime columns: Extract year, month, day, dayofweek, is_weekend
-        - Object/string columns: Drop (or could be encoded if needed)
+        - Categorical columns (unique values <= threshold): Encode using label or onehot encoding
+        - High-cardinality columns (unique values > threshold): Drop
 
         Args:
             df: DataFrame with feature columns
+            encoding_threshold: Max unique values for a column to be encoded (default: 10)
+            encoding_method: 'label' for LabelEncoder or 'onehot' for OneHotEncoding (default: 'label')
+            exclude_cols: List of column names to exclude from processing (dropped directly)
 
         Returns:
-            DataFrame with only numeric columns (dates converted to features)
+            DataFrame with only numeric columns (dates and categoricals converted)
         """
         df_processed = df.copy()
         cols_to_drop = []
+        encoded_cols = []
+
+        # Get columns to exclude (from parameter or empty list)
+        exclude_set = set(exclude_cols) if exclude_cols else set()
 
         for col in df_processed.columns:
+            # Skip excluded columns - drop them directly without any processing
+            if col in exclude_set:
+                print(f"  Dropping excluded column '{col}' (in EXCLUDE_COLS)")
+                cols_to_drop.append(col)
+                continue
+
             dtype = df_processed[col].dtype
 
-            # Check if column is object type (string/date)
+            # Check if column is object type (string/date/categorical)
             if dtype == 'object':
-                # Try to parse as datetime
+                # Try to parse as datetime first (suppress dateutil warning)
                 try:
-                    date_col = pd.to_datetime(df_processed[col], errors='coerce')
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings('ignore', message='Could not infer format')
+                        date_col = pd.to_datetime(df_processed[col], errors='coerce')
                     # If more than 50% are valid dates, treat as date column
                     if date_col.notna().mean() > 0.5:
                         print(f"  Converting date column '{col}' to numeric features...")
@@ -513,12 +558,30 @@ class DataPreprocessor:
                         df_processed[f'{col}_dayofweek'] = date_col.dt.dayofweek
                         df_processed[f'{col}_is_weekend'] = (date_col.dt.dayofweek >= 5).astype(int)
                         cols_to_drop.append(col)
-                    else:
-                        # Non-date string column - drop it
-                        print(f"  Dropping non-numeric column '{col}' (type: {dtype})")
-                        cols_to_drop.append(col)
+                        continue
                 except Exception:
-                    print(f"  Dropping non-numeric column '{col}' (type: {dtype})")
+                    pass
+
+                # Not a date - check if it's a categorical with limited unique values
+                n_unique = df_processed[col].nunique()
+
+                if n_unique <= encoding_threshold:
+                    # Encode categorical column
+                    if encoding_method == 'label':
+                        print(f"  Encoding categorical column '{col}' ({n_unique} unique values) using LabelEncoder...")
+                        le = LabelEncoder()
+                        df_processed[col] = le.fit_transform(df_processed[col].astype(str))
+                        encoded_cols.append(col)
+                    elif encoding_method == 'onehot':
+                        print(f"  Encoding categorical column '{col}' ({n_unique} unique values) using OneHotEncoding...")
+                        # Create dummy variables
+                        dummies = pd.get_dummies(df_processed[col], prefix=col, drop_first=True)
+                        df_processed = pd.concat([df_processed, dummies], axis=1)
+                        cols_to_drop.append(col)
+                        encoded_cols.extend(dummies.columns.tolist())
+                else:
+                    # Too many unique values - drop the column
+                    print(f"  Dropping high-cardinality column '{col}' ({n_unique} unique values > threshold {encoding_threshold})")
                     cols_to_drop.append(col)
 
             # Handle datetime columns directly
@@ -531,9 +594,12 @@ class DataPreprocessor:
                 df_processed[f'{col}_is_weekend'] = (df_processed[col].dt.dayofweek >= 5).astype(int)
                 cols_to_drop.append(col)
 
-        # Drop original date/non-numeric columns
+        # Drop original date/high-cardinality columns
         if cols_to_drop:
             df_processed = df_processed.drop(columns=cols_to_drop)
+
+        if encoded_cols:
+            print(f"  Encoded columns: {encoded_cols}")
 
         return df_processed
 
@@ -557,8 +623,13 @@ class DataPreprocessor:
         if self.df is None:
             raise ValueError("Data not loaded. Call load_data() first.")
 
-        # Define feature columns (exclude target variables AND aggregation columns)
+        # Define feature columns (exclude target variables, aggregation columns, and user-specified columns)
         exclude_cols = [self.class_var_name, self.aggregated_var_name] + list(self.aggregation_cols or [])
+
+        # Add user-specified columns to exclude from Config
+        user_exclude_cols = list(Config.EXCLUDE_COLS) if Config.EXCLUDE_COLS else []
+        exclude_cols.extend(user_exclude_cols)
+
         feature_cols = [col for col in self.df.columns if col not in exclude_cols]
 
         X = self.df[feature_cols]
@@ -572,9 +643,18 @@ class DataPreprocessor:
         print(f"  Columns: {feature_cols}")
         if self.aggregation_cols:
             print(f"  (Excluded aggregation columns: {list(self.aggregation_cols)})")
+        if user_exclude_cols:
+            print(f"  (Excluded user-specified columns: {user_exclude_cols})")
 
-        # Handle non-numeric columns (dates, strings, etc.)
-        X = self._handle_non_numeric_columns(X)
+        # Handle non-numeric columns (dates, categoricals, etc.)
+        # Use config settings for encoding threshold and method
+        # Pass exclude_cols as safety check (columns should already be excluded, but this ensures they're dropped)
+        X = self._handle_non_numeric_columns(
+            X,
+            encoding_threshold=Config.CATEGORICAL_ENCODING_THRESHOLD,
+            encoding_method=Config.CATEGORICAL_ENCODING_METHOD,
+            exclude_cols=user_exclude_cols
+        )
         final_feature_cols = X.columns.tolist()
 
         # Reset indices to ensure alignment between X and y
@@ -613,17 +693,21 @@ class DataPreprocessor:
         if self.df is None:
             raise ValueError("Data not loaded. Call load_data() first.")
 
-        if len(self.aggregation_cols) < 2:
-            raise ValueError("At least two aggregation columns are required for multi-output targets")
+        n_cols = len(self.aggregation_cols) if self.aggregation_cols else 0
 
-        y_multi = self.df[[self.aggregation_cols[0], self.aggregation_cols[1]]].values
+        if n_cols < 2:
+            raise ValueError("At least two aggregation columns are required for multi-output targets. "
+                           f"Current columns: {self.aggregation_cols}")
+
+        # Use all aggregation columns for multi-output
+        y_multi = self.df[self.aggregation_cols].values
 
         print("="*80)
         print(" "*20 + "MULTI-OUTPUT TARGETS")
         print("="*80)
         print(f"\nShape: {y_multi.shape}")
-        print(f"  {self.aggregation_cols[0]} range: [{y_multi[:, 0].min():.2f}, {y_multi[:, 0].max():.2f}]")
-        print(f"  {self.aggregation_cols[1]} range: [{y_multi[:, 1].min():.2f}, {y_multi[:, 1].max():.2f}]")
+        for i, col in enumerate(self.aggregation_cols):
+            print(f"  {col} range: [{y_multi[:, i].min():.2f}, {y_multi[:, i].max():.2f}]")
         print("="*80 + "\n")
 
         return y_multi

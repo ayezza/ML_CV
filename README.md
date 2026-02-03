@@ -7,7 +7,7 @@ A comprehensive machine learning pipeline for testing and comparing classificati
 - **Multi-Model Comparison**: Test 8 classification and 12 regression models simultaneously
 - **Cross-Validation Experiments**: Compare CV=3, 5, 10, 15 to find optimal settings for your data
 - **Hyperparameter Tuning**: Support for GridSearchCV and RandomizedSearchCV (more time efficient)
-- **Automatic Preprocessing**: Handles date columns, non-numeric data, and feature scaling for fast convergence
+- **Automatic Preprocessing**: Handles date columns, categorical encoding, and feature scaling for fast convergence
 - **Multiple Aggregation Functions**: 17+ methods to combine target columns (sum, euclidean, mahalanobis, etc.)
 - **Auto Class Detection**: Automatically finds optimal number of classes using clustering metrics (but you can fix your own classes)
 - **Comprehensive Visualizations**: Confusion matrices, ROC curves, scatter plots, CV analysis charts
@@ -77,10 +77,18 @@ All settings are centralized in `config.py`:
 DATA_PATH = DATA_DIR / 'ENB_data.csv'
 
 # Columns to aggregate for target variable
+# Single column: No aggregation needed, used directly as target
+AGGREGATION_COLS = ['Temperature (C)']
+
+# Multiple columns: Aggregation function combines them into single target
 AGGREGATION_COLS = ['heating_load', 'cooling_load']
 
-# Aggregation method
+# Aggregation method (ignored for single column)
 AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'euclidean', 'manhattan', etc.
+
+# Columns to exclude from features (will not be used for training)
+# Useful for: ID columns, text descriptions, columns causing data leakage
+EXCLUDE_COLS = ['id', 'Daily Summary']  # Example exclusions
 ```
 
 ### Model Settings
@@ -101,6 +109,22 @@ SEARCH_TYPE = 'grid'     # 'grid' (exhaustive) or 'random' (faster)
 N_CLASSES = 'auto'               # Auto-detect optimal number of classes
 CLUSTERING_METHOD = 'kmeans'     # 'kmeans' or 'qcut' for label creation
 ```
+
+### Categorical Encoding Settings
+
+```python
+# Columns with unique values <= threshold will be encoded
+# Columns with unique values > threshold will be dropped
+CATEGORICAL_ENCODING_THRESHOLD = 10   # Max unique values for encoding
+
+# Encoding method: 'label' (LabelEncoder) or 'onehot' (OneHotEncoder)
+CATEGORICAL_ENCODING_METHOD = 'label'
+```
+
+The preprocessing automatically handles:
+- **Date columns**: Extracted to year, month, day, dayofweek, is_weekend features
+- **Low-cardinality categoricals**: Encoded using Label or OneHot encoding
+- **High-cardinality columns**: Dropped (too many unique values)
 
 ## Available Models
 
@@ -134,7 +158,9 @@ CLUSTERING_METHOD = 'kmeans'     # 'kmeans' or 'qcut' for label creation
 
 ## Aggregation Functions
 
-Combine multiple target columns using various methods:
+**Single target column**: No aggregation needed - the column is used directly as the regression target.
+
+**Multiple target columns**: Combine them using various methods:
 
 | Method | Formula | Use Case |
 |--------|---------|----------|
@@ -212,11 +238,12 @@ The pipeline has been tested with:
 
 | Dataset | Source | Target Columns |
 |---------|--------|----------------|
-| ENB_data.csv | [UCI](https://archive.ics.uci.edu/ml/datasets/energy+efficiency) | heating_load, cooling_load |
-| bike_sharing_hour.csv | [UCI](https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset) | cnt (count) |
-| winequality-red.csv | [UCI](https://archive.ics.uci.edu/dataset/186/wine+quality) | quality |
-| energydata_complete.csv | [UCI](https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction) | Appliances |
-| superconductivty_train.csv | [UCI](https://archive.ics.uci.edu/dataset/464/superconductivty+data) | critical_temp |
+| ENB_data.csv | [UCI](https://archive.ics.uci.edu/ml/datasets/energy+efficiency) | heating_load, cooling_load (aggregated) |
+| weather_data.csv | [Kaggle](https://www.kaggle.com/datasets/muthuj7/weather-dataset) | Temperature (C) (single column) |
+| bike_sharing_hour.csv | [UCI](https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset) | cnt (single column) |
+| winequality-red.csv | [UCI](https://archive.ics.uci.edu/dataset/186/wine+quality) | quality (single column) |
+| energydata_complete.csv | [UCI](https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction) | Appliances (single column) |
+| superconductivty_train.csv | [UCI](https://archive.ics.uci.edu/dataset/464/superconductivty+data) | critical_temp (single column) |
 
 Want to test your dataset, just affect it to `DATA_PATH` global variable. 
 
