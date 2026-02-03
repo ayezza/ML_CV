@@ -53,11 +53,106 @@ import argparse
 
 
 
-def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classification=True, test_regression=True):
+def prepare_data(test_classification=True):
     """
-    Run experiment with different CV fold values
+    Prepare data once for all experiments.
+
+    This function handles all preprocessing including:
+    - Loading data
+    - Creating target variables (with class finding if needed)
+    - Train-test split
+    - Feature scaling
 
     Args:
+        test_classification: Whether classification will be tested (triggers class finding)
+
+    Returns:
+        Dictionary with prepared data for classification and regression
+    """
+    print("\n" + "="*80)
+    print(" "*20 + "DATA PREPARATION")
+    print("="*80)
+
+    # Load and prepare data
+    preprocessor = DataPreprocessor(
+        data_path=Config.DATA_PATH,
+        aggregation_cols=Config.AGGREGATION_COLS,
+        aggregation_name=Config.AGGREGATION_NAME
+    )
+    preprocessor.load_data()
+
+    # Create target variables - class finding happens here (only once!)
+    preprocessor.create_target_variables(
+        n_classes=Config.N_CLASSES,
+        clustering_method=Config.CLUSTERING_METHOD,
+        create_classes=test_classification
+    )
+
+    data = preprocessor.get_feature_target_split()
+    X = data['X']
+    y_classification = data['y_classification']
+    y_regression = data['y_regression']
+
+    # Get actual number of classes (important when N_CLASSES='auto')
+    actual_n_classes = len(y_classification.unique()) if test_classification else 0
+    print(f"Actual number of classes: {actual_n_classes}")
+
+    # Classification train-test split
+    X_train_clf, X_test_clf, y_train_clf, y_test_clf = train_test_split(
+        X, y_classification,
+        test_size=Config.TEST_SIZE,
+        random_state=Config.RANDOM_STATE
+    )
+
+    # Standardize features for classification
+    scaler_clf = StandardScaler()
+    X_train_clf_scaled = scaler_clf.fit_transform(X_train_clf)
+    X_test_clf_scaled = scaler_clf.transform(X_test_clf)
+
+    # Regression train-test split
+    X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
+        X, y_regression,
+        test_size=Config.TEST_SIZE,
+        random_state=Config.RANDOM_STATE
+    )
+
+    # Scale regression data separately
+    feature_names_reg = X_train_reg.columns.tolist() if hasattr(X_train_reg, 'columns') else None
+    scaler_reg = StandardScaler()
+    X_train_reg_scaled = scaler_reg.fit_transform(X_train_reg)
+    X_test_reg_scaled = scaler_reg.transform(X_test_reg)
+
+    # Convert back to DataFrame to preserve feature names (avoids LightGBM warnings)
+    if feature_names_reg:
+        X_train_reg_scaled = pd.DataFrame(X_train_reg_scaled, columns=feature_names_reg)
+        X_test_reg_scaled = pd.DataFrame(X_test_reg_scaled, columns=feature_names_reg)
+
+    print("\nData preparation complete!")
+    print("-"*80)
+
+    return {
+        # Classification data
+        'X_train_clf': X_train_clf_scaled,
+        'X_test_clf': X_test_clf_scaled,
+        'y_train_clf': y_train_clf,
+        'y_test_clf': y_test_clf,
+        # Regression data
+        'X_train_reg': X_train_reg_scaled,
+        'X_test_reg': X_test_reg_scaled,
+        'y_train_reg': y_train_reg,
+        'y_test_reg': y_test_reg,
+        # Metadata
+        'actual_n_classes': actual_n_classes
+    }
+
+
+def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest',
+                      test_classification=True, test_regression=True):
+    """
+    Run experiment with different CV fold values using pre-prepared data.
+
+    Args:
+        prepared_data: Dictionary with prepared data from prepare_data()
         cv_values: List of CV fold values to test
         model_name: Model to test ('RandomForest', 'SVC', etc.)
         test_classification: Whether to test classification (default: True)
@@ -73,56 +168,16 @@ def run_cv_experiment(cv_values=[3, 5], model_name='RandomForest', test_classifi
     print(f"Model: {model_name}")
     print("-"*80)
 
-    # Load and prepare data
-    preprocessor = DataPreprocessor(
-        data_path=Config.DATA_PATH,                 # dataset path as './data/dataset.csv'
-        aggregation_cols=Config.AGGREGATION_COLS,   # columns to aggregate on
-        aggregation_name=Config.AGGREGATION_NAME    # name for the aggregation function
-    )
-    preprocessor.load_data()
-    # preprocessor.(aggregation_name=Config.AGGREGATION_NAME)
-    preprocessor.create_target_variables(n_classes=Config.N_CLASSES, clustering_method=Config.CLUSTERING_METHOD)
-
-    data = preprocessor.get_feature_target_split()
-    X = data['X']
-    y_classification = data['y_classification']
-    y_regression = data['y_regression']
-
-
-    # ClassificationTrain-test split
-    X_train, X_test, y_train_clf, y_test_clf = train_test_split(
-        X, y_classification,
-        test_size=Config.TEST_SIZE,
-        random_state=Config.RANDOM_STATE
-    )
-
-    # Get actual number of classes (important when N_CLASSES='auto')
-    actual_n_classes = len(y_classification.unique())
-    print(f"Actual number of classes: {actual_n_classes}")
-
-    # Standardize features by scaling - IMPORTANT for models using gradient descent
-    # (LogisticRegression, SVC, Lasso, ElasticNet, Ridge with saga solver, etc.)
-    scaler_clf = StandardScaler()
-    X_train = scaler_clf.fit_transform(X_train)
-    X_test = scaler_clf.transform(X_test)
-
-    X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
-        X, y_regression,
-        test_size=Config.TEST_SIZE,
-        random_state=Config.RANDOM_STATE
-    )
-
-    # Scale regression data separately (same random split, fresh scaler)
-    # Preserve feature names to avoid LightGBM/XGBoost warnings
-    feature_names_reg = X_train_reg.columns.tolist() if hasattr(X_train_reg, 'columns') else None
-    scaler_reg = StandardScaler()
-    X_train_reg = scaler_reg.fit_transform(X_train_reg)
-    X_test_reg = scaler_reg.transform(X_test_reg)
-
-    # Convert back to DataFrame to preserve feature names (avoids LightGBM warnings)
-    if feature_names_reg:
-        X_train_reg = pd.DataFrame(X_train_reg, columns=feature_names_reg)
-        X_test_reg = pd.DataFrame(X_test_reg, columns=feature_names_reg)
+    # Extract prepared data
+    X_train = prepared_data['X_train_clf']
+    X_test = prepared_data['X_test_clf']
+    y_train_clf = prepared_data['y_train_clf']
+    y_test_clf = prepared_data['y_test_clf']
+    X_train_reg = prepared_data['X_train_reg']
+    X_test_reg = prepared_data['X_test_reg']
+    y_train_reg = prepared_data['y_train_reg']
+    y_test_reg = prepared_data['y_test_reg']
+    actual_n_classes = prepared_data['actual_n_classes']
 
     results = []
 
@@ -407,8 +462,17 @@ if __name__ == '__main__':
         classification_models = [m for m in classification_models if m in models_filter]
         regression_models = [m for m in regression_models if m in models_filter]
 
+    # Determine if we need classification classes
+    test_classification = task_type in ['classification', 'both']
+    test_regression = task_type in ['regression', 'both']
+
+    # =========================================================================
+    # PREPARE DATA ONCE (including class finding if classification is requested)
+    # =========================================================================
+    prepared_data = prepare_data(test_classification=test_classification)
+
     # Test classification models
-    if task_type in ['classification', 'both']:
+    if test_classification:
         print("\n" + "="*80)
         print("CLASSIFICATION MODELS EXPERIMENTS")
         print("="*80)
@@ -417,20 +481,21 @@ if __name__ == '__main__':
             print(f"\n[{i}/{len(classification_models)}] Testing {model_name}...")
             try:
                 df_model = run_cv_experiment(
-                    cv_values=cv_values_to_test,  # Use command-line CV values if any, space separated
-                    model_name=model_name, # use command-line model if any, space separated
+                    prepared_data=prepared_data,  # Pass pre-prepared data
+                    cv_values=cv_values_to_test,
+                    model_name=model_name,
                     test_classification=True,
-                    test_regression=False  # Classification models only, skip regression
+                    test_regression=False
                 )
                 all_results.append(df_model)
                 analyze_results(df_model)
                 save_results(df_model, f'./output/reports/cv_experiment_{model_name}_{clustering_method}_classification.xlsx')
             except Exception as e:
-                print(f"  ⚠️ Error testing {model_name}: {e}")
+                print(f"  Error testing {model_name}: {e}")
                 continue
 
     # Test regression models
-    if task_type in ['regression', 'both']:
+    if test_regression:
         print("\n" + "="*80)
         print("REGRESSION MODELS EXPERIMENTS")
         print("="*80)
@@ -439,16 +504,17 @@ if __name__ == '__main__':
             print(f"\n[{i}/{len(regression_models)}] Testing {model_name}...")
             try:
                 df_model = run_cv_experiment(
-                    cv_values=cv_values_to_test,  # Use command-line CV values
+                    prepared_data=prepared_data,  # Pass pre-prepared data
+                    cv_values=cv_values_to_test,
                     model_name=model_name,
-                    test_classification=False,  # Regression models only
+                    test_classification=False,
                     test_regression=True
                 )
                 all_results.append(df_model)
                 analyze_results(df_model)
                 save_results(df_model, f'./output/reports/cv_experiment_{model_name}_{clustering_method}_regression.xlsx')
             except Exception as e:
-                print(f"  ⚠️ Error testing {model_name}: {e}")
+                print(f"  Error testing {model_name}: {e}")
                 continue
 
     # Combined results

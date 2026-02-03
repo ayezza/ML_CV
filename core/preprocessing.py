@@ -311,9 +311,9 @@ class DataPreprocessor:
             'method': method
         }
 
-    def create_target_variables(self, n_classes=4, clustering_method='qcut', auto_k_method='silhouette'):
+    def create_target_variables(self, n_classes=4, clustering_method='qcut', auto_k_method='silhouette', create_classes=True):
         """
-        Create aggregated target variable and classification classes
+        Create aggregated target variable and optionally classification classes
 
         Args:
             n_classes: Number of classes for classification (default: 4)
@@ -323,6 +323,8 @@ class DataPreprocessor:
                 'kmeans': KMeans clustering on target_vars space
             auto_k_method: Method for finding optimal k when n_classes='auto'
                            Options: 'silhouette', 'calinski', 'davies_bouldin', 'elbow'
+            create_classes: Whether to create classification classes (default: True)
+                           Set to False when only regression is needed (saves time)
 
         Returns:
             tuple: (df, target_classes_dict) - Updated dataframe and dict of class DataFrames
@@ -331,6 +333,8 @@ class DataPreprocessor:
             >>> df, classes = preprocessor.create_target_variables(n_classes=4, clustering_method='kmeans')
             >>> # Or find optimal k automatically:
             >>> df, classes = preprocessor.create_target_variables(n_classes='auto', clustering_method='kmeans')
+            >>> # For regression only (skip class creation):
+            >>> df, classes = preprocessor.create_target_variables(create_classes=False)
         """
         print("="*80)
         print(" "*20 + "CREATING TARGET VARIABLES")
@@ -345,8 +349,8 @@ class DataPreprocessor:
         if n_agg_cols == 0:
             raise ValueError("No aggregation columns specified. Set AGGREGATION_COLS in config.")
 
-        # Handle 'auto' n_classes - find optimal k
-        if n_classes == 'auto':
+        # Handle 'auto' n_classes - find optimal k (only if creating classes)
+        if create_classes and n_classes == 'auto':
             result = self.find_optimal_n_classes(k_range=(2, 10), method=auto_k_method)
             n_classes = result['optimal_k']
             print(f"Using automatically determined n_classes={n_classes}")
@@ -373,72 +377,79 @@ class DataPreprocessor:
             print("\nFirst 5 rows with aggregated target:")
             print(self.df[[self.aggregation_cols[0], self.aggregation_cols[1], self.aggregated_var_name]].head())
 
-        # Create classification classes based on specified method
-        print(f"\nClustering method: {clustering_method.upper()}")
+        # Create classification classes only if needed
+        if create_classes:
+            # Create classification classes based on specified method
+            print(f"\nClustering method: {clustering_method.upper()}")
 
-        if clustering_method == 'kmeans':
-            # Use KMeans clustering on target_vars space
-            print(f"Using KMeans clustering to find {n_classes} natural clusters...")
+            if clustering_method == 'kmeans':
+                # Use KMeans clustering on target_vars space
+                print(f"Using KMeans clustering to find {n_classes} natural clusters...")
 
-            # Prepare data for clustering (handle single or multiple columns)
-            if n_agg_cols == 1:
-                X = self.df[[self.aggregation_cols[0]]].values
-            else:
-                X = self.df[self.aggregation_cols].values
+                # Prepare data for clustering (handle single or multiple columns)
+                if n_agg_cols == 1:
+                    X = self.df[[self.aggregation_cols[0]]].values
+                else:
+                    X = self.df[self.aggregation_cols].values
 
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X)
+                scaler = StandardScaler()
+                X_scaled = scaler.fit_transform(X)
 
-            # Perform KMeans clustering
-            kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
-            cluster_labels = kmeans.fit_predict(X_scaled)
+                # Perform KMeans clustering
+                kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
+                cluster_labels = kmeans.fit_predict(X_scaled)
 
-            # Assign cluster labels as classes
-            self.df[self.class_var_name] = cluster_labels
-            # Calculate cluster quality metrics
-            silhouette = silhouette_score(X_scaled, cluster_labels)
-            calinski = calinski_harabasz_score(X_scaled, cluster_labels)
-            davies_bouldin = davies_bouldin_score(X_scaled, cluster_labels)
+                # Assign cluster labels as classes
+                self.df[self.class_var_name] = cluster_labels
+                # Calculate cluster quality metrics
+                silhouette = silhouette_score(X_scaled, cluster_labels)
+                calinski = calinski_harabasz_score(X_scaled, cluster_labels)
+                davies_bouldin = davies_bouldin_score(X_scaled, cluster_labels)
 
-            print(f"✓ Created {n_classes} classes using KMeans clustering")
-            print(f"  Cluster quality metrics:")
-            print(f"    Silhouette Score:       {silhouette:.4f}  (higher is better, -1 to 1)")
-            print(f"    Calinski-Harabasz:      {calinski:.2f}   (higher is better)")
-            print(f"    Davies-Bouldin:         {davies_bouldin:.4f}  (lower is better)")
+                print(f"✓ Created {n_classes} classes using KMeans clustering")
+                print(f"  Cluster quality metrics:")
+                print(f"    Silhouette Score:       {silhouette:.4f}  (higher is better, -1 to 1)")
+                print(f"    Calinski-Harabasz:      {calinski:.2f}   (higher is better)")
+                print(f"    Davies-Bouldin:         {davies_bouldin:.4f}  (lower is better)")
 
-            # Get cluster centers (in original scale for interpretability)
-            centers_scaled = kmeans.cluster_centers_
-            centers = scaler.inverse_transform(centers_scaled)
+                # Get cluster centers (in original scale for interpretability)
+                centers_scaled = kmeans.cluster_centers_
+                centers = scaler.inverse_transform(centers_scaled)
 
-            print(f"\n  Cluster centers {self.aggregation_cols}:")
-            if n_agg_cols == 1:
-                for i, center in enumerate(centers):
-                    print(f"    Cluster {i}: ({center[0]:.2f})")
-            else:
-                for i, center in enumerate(centers):
-                    print(f"    Cluster {i}: ({', '.join(f'{v:.2f}' for v in center)})")
+                print(f"\n  Cluster centers {self.aggregation_cols}:")
+                if n_agg_cols == 1:
+                    for i, center in enumerate(centers):
+                        print(f"    Cluster {i}: ({center[0]:.2f})")
+                else:
+                    for i, center in enumerate(centers):
+                        print(f"    Cluster {i}: ({', '.join(f'{v:.2f}' for v in center)})")
 
-        else:  # pandas qcut (default)
-            # Use quantile-based binning on aggregated values
-            self.df[self.class_var_name] = pd.qcut(
-                self.df[self.aggregated_var_name],
-                q=n_classes,
-                labels=list(range(n_classes)),
-                duplicates='drop'
-            )
+            else:  # pandas qcut (default)
+                # Use quantile-based binning on aggregated values
+                self.df[self.class_var_name] = pd.qcut(
+                    self.df[self.aggregated_var_name],
+                    q=n_classes,
+                    labels=list(range(n_classes)),
+                    duplicates='drop'
+                )
 
-            print(f"✓ Created {n_classes} classes using quantile-based binning (qcut)")
+                print(f"✓ Created {n_classes} classes using quantile-based binning (qcut)")
 
-        # Split data by class for analysis
-        self.target_classes = {}
-        for i in range(n_classes):
-            class_df = self.df[self.df[self.class_var_name] == i].sort_values(
-                by=self.aggregated_var_name, ascending=True
-            )
-            self.target_classes[i] = class_df
-            print(f"\nClass {i}: {len(class_df)} samples")
-            print(f"  Range: [{class_df[self.aggregated_var_name].min():.2f}, "
-                  f"{class_df[self.aggregated_var_name].max():.2f}]")
+            # Split data by class for analysis
+            self.target_classes = {}
+            for i in range(n_classes):
+                class_df = self.df[self.df[self.class_var_name] == i].sort_values(
+                    by=self.aggregated_var_name, ascending=True
+                )
+                self.target_classes[i] = class_df
+                print(f"\nClass {i}: {len(class_df)} samples")
+                print(f"  Range: [{class_df[self.aggregated_var_name].min():.2f}, "
+                      f"{class_df[self.aggregated_var_name].max():.2f}]")
+        else:
+            # Regression only - create dummy class column (not used, but needed for consistency)
+            self.df[self.class_var_name] = 0
+            self.target_classes = {}
+            print("\n(Skipping classification class creation - regression only mode)")
 
         print("="*80 + "\n")
 
