@@ -487,7 +487,7 @@ class ModelTuner:
         Returns:
             Total number of combinations
         """
-        # Handle list of parameter grids (e.g., LogisticRegression with solver-penalty constraints)
+        # Handle list of parameter grids (different estimators as dicts)
         if isinstance(param_grid, list):
             total_count = 0
             for single_grid in param_grid:
