@@ -21,10 +21,10 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'ENB_data.csv' 
+    DATA_PATH = DATA_DIR / 'bike_sharing_hour.csv' 
     
     # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['heating_load', 'cooling_load']    #  ['Temperature (C)'] # Columns to aggregate for target variable
+    AGGREGATION_COLS = ['casual', 'registered']    #  ['Temperature (C)'] # Columns to aggregate for target variable
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
