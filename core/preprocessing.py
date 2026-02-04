@@ -88,7 +88,24 @@ class DataPreprocessor:
             print(f"\nLoading file: {self.data_path.name}")
             print(f"   Full path: {self.data_path.absolute()}")
 
-            self.df = pd.read_csv(self.data_path)
+            # Get delimiter from config (supports 'auto' for auto-detection)
+            delimiter = getattr(Config, 'CSV_DELIMITER', ',')
+            if delimiter == 'auto':
+                # Auto-detect delimiter by reading first line
+                with open(self.data_path, 'r', encoding='utf-8') as f:
+                    first_line = f.readline()
+                # Check common delimiters
+                if ';' in first_line and ',' not in first_line:
+                    delimiter = ';'
+                elif '\t' in first_line and ',' not in first_line:
+                    delimiter = '\t'
+                else:
+                    delimiter = ','
+                print(f"   Auto-detected delimiter: '{delimiter}'")
+            else:
+                print(f"   Using delimiter: '{delimiter}'")
+
+            self.df = pd.read_csv(self.data_path, delimiter=delimiter)
 
             # Validate loaded data
             if self.df.empty:
