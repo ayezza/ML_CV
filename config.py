@@ -21,7 +21,7 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'winequality-red.csv'
+    DATA_PATH = DATA_DIR / 'winequality-white.csv'
 
     # CSV delimiter setting
     # Options: 'auto' (auto-detect), ',' (comma), ';' (semicolon), '\t' (tab), etc.

@@ -140,11 +140,10 @@ class ModelTuner:
         #     'max_features': ['sqrt', 'log2', None]
         # },
         'SVM': {
-            'C': [500],  # Wide range for regularization (higher C = less regularization)
-            'gamma': ['scale', 'auto'],  # Kernel coefficient (lower gamma = smoother)
-            'kernel': ['rbf'],  # Try different kernels
-            'epsilon': [0.01],  # Epsilon-tube width (smaller = tighter fit)
-            'degree': [1, 2]  # Only for poly kernel
+            'C': [0.1, 1, 10, 100],  # Range for regularization (higher C = less regularization)
+            'gamma': ['scale', 'auto', 0.01, 0.1],  # Kernel coefficient
+            'kernel': ['rbf', 'linear'],  # RBF and linear kernels
+            'epsilon': [0.1, 0.2, 0.5],  # Epsilon-tube width (wider = more tolerance)
         },
         'KNN': {
             'n_neighbors': [3, 5, 7, 9, 11, 15],
