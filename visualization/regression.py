@@ -11,7 +11,7 @@ from pathlib import Path
 
 def plot_regression_scatter(y_test, y_pred, model_name, output_path,
                            is_tuned=False, custom_aggregation_name='sum',
-                           title=None, show_residuals=False):
+                           title=None, show_residuals=False, dataset_info=None):
     """
     Generate scatter plot for regression showing actual vs predicted values
 
@@ -24,6 +24,7 @@ def plot_regression_scatter(y_test, y_pred, model_name, output_path,
         custom_aggregation_name: Name of aggregation function used
         title: Custom title (optional)
         show_residuals: Whether to add residual plot (default: False)
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved scatter plot
@@ -71,8 +72,11 @@ def plot_regression_scatter(y_test, y_pred, model_name, output_path,
         if title is None:
             title = f'Actual vs Predicted - {model_name}'
 
-        ax.set_title(f'{title}\n(Aggregation: {custom_aggregation_name})',
-                    fontsize=14, fontweight='bold')
+        # Build full title with dataset info if provided
+        full_title = f'{title}\n(Aggregation: {custom_aggregation_name})'
+        if dataset_info:
+            full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}\n(Aggregation: {custom_aggregation_name})"
+        ax.set_title(full_title, fontsize=14, fontweight='bold')
         ax.legend(loc='lower right', fontsize=10)
         ax.grid(True, alpha=0.3)
 
@@ -124,8 +128,11 @@ def plot_regression_scatter(y_test, y_pred, model_name, output_path,
         if title is None:
             title = f'Actual vs Predicted - {model_name}'
 
-        plt.title(f'{title}\n(Aggregation: {custom_aggregation_name})',
-                 fontsize=14, fontweight='bold')
+        # Build full title with dataset info if provided
+        full_title = f'{title}\n(Aggregation: {custom_aggregation_name})'
+        if dataset_info:
+            full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}\n(Aggregation: {custom_aggregation_name})"
+        plt.title(full_title, fontsize=14, fontweight='bold')
         plt.legend(loc='lower right', fontsize=10)
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -134,8 +141,9 @@ def plot_regression_scatter(y_test, y_pred, model_name, output_path,
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Save figure
-    filename = f'regression_scatter_{model_name}_{custom_aggregation_name}.png'
+    # Save figure with dataset info in filename if provided
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    filename = f'regression_scatter_{model_name}_{custom_aggregation_name}{suffix}.png'
     save_path = output_path / filename
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()

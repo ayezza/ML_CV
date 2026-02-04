@@ -21,14 +21,14 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'weather_data.csv' 
+    DATA_PATH = DATA_DIR / 'ENB_data.csv' 
     
     # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['Temperature (C)']   # ['heating_load', 'cooling_load']  # Columns to aggregate for target variable
+    AGGREGATION_COLS = ['heating_load', 'cooling_load']    #  ['Temperature (C)'] # Columns to aggregate for target variable
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
+    EXCLUDE_COLS = [] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
@@ -211,6 +211,34 @@ class Config:
             raise ValueError(f"Unknown subcategory: {subcategory}")
 
         return base_dir / mapping[subcategory]
+
+    @classmethod
+    def get_dataset_name(cls):
+        """Get the dataset filename without extension"""
+        return cls.DATA_PATH.stem
+
+    @classmethod
+    def get_target_cols_str(cls):
+        """Get target columns as a readable string for titles"""
+        return ', '.join(cls.AGGREGATION_COLS)
+
+    @classmethod
+    def get_filename_suffix(cls):
+        """Get a sanitized suffix for filenames (dataset + target cols)"""
+        dataset = cls.DATA_PATH.stem
+        # Sanitize target cols for filename (replace spaces and special chars)
+        target_str = '_'.join(cls.AGGREGATION_COLS)
+        target_str = target_str.replace(' ', '_').replace('(', '').replace(')', '')
+        return f"{dataset}_{target_str}"
+
+    @classmethod
+    def get_dataset_info(cls):
+        """Get dataset info dict for visualization functions"""
+        return {
+            'name': cls.get_dataset_name(),
+            'target_cols': cls.get_target_cols_str(),
+            'filename_suffix': cls.get_filename_suffix()
+        }
 
     @classmethod
     def summary(cls):

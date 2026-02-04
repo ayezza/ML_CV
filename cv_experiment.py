@@ -533,6 +533,7 @@ if __name__ == '__main__':
         print("="*80)
 
         cv_graphs_dir = Config.OUTPUT_DIR / 'graphs' / 'cv_analysis'
+        dataset_info = Config.get_dataset_info()
 
         # Generate visualizations for classification
         if task_type in ['classification', 'both']:
@@ -541,7 +542,8 @@ if __name__ == '__main__':
                 generate_cv_analysis_report(
                     clf_results,
                     cv_graphs_dir / 'classification',
-                    task_type='classification'
+                    task_type='classification',
+                    dataset_info=dataset_info
                 )
 
         # Generate visualizations for regression
@@ -551,7 +553,8 @@ if __name__ == '__main__':
                 generate_cv_analysis_report(
                     reg_results,
                     cv_graphs_dir / 'regression',
-                    task_type='regression'
+                    task_type='regression',
+                    dataset_info=dataset_info
                 )
 
         print(f"\nAll CV analysis graphs saved to: {cv_graphs_dir}")

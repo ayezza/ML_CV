@@ -15,7 +15,7 @@ from pathlib import Path
 
 def plot_confusion_matrix(y_test, y_pred, target_classes, model_name,
                           output_path, is_tuned=False,
-                          custom_aggregation_name='sum', title=None):
+                          custom_aggregation_name='sum', title=None, dataset_info=None):
     """
     Generate and save confusion matrix visualization
 
@@ -28,6 +28,7 @@ def plot_confusion_matrix(y_test, y_pred, target_classes, model_name,
         is_tuned: Whether this is for a tuned model (affects subdirectory)
         custom_aggregation_name: Name of aggregation function used
         title: Custom title (optional)
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved confusion matrix plot
@@ -69,15 +70,20 @@ def plot_confusion_matrix(y_test, y_pred, target_classes, model_name,
     if title is None:
         title = f'Confusion Matrix - {model_name}'
 
-    plt.title(f"{title}\n(Aggregation: {custom_aggregation_name})", fontsize=14)
+    # Build full title with dataset info if provided
+    full_title = f"{title}\n(Aggregation: {custom_aggregation_name})"
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}\n(Aggregation: {custom_aggregation_name})"
+    plt.title(full_title, fontsize=14)
     plt.tight_layout()
 
     # Ensure output directory exists
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Save figure
-    filename = f"CONF_MATRIX_{model_name.replace(' ', '_').lower()}_{custom_aggregation_name}.png"
+    # Save figure with dataset info in filename if provided
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    filename = f"CONF_MATRIX_{model_name.replace(' ', '_').lower()}_{custom_aggregation_name}{suffix}.png"
     save_path = output_path / filename
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
@@ -90,7 +96,7 @@ def plot_confusion_matrix(y_test, y_pred, target_classes, model_name,
 
 def plot_roc_curve(y_test, y_score, model_name, output_path,
                    is_tuned=False, n_classes=4,
-                   custom_aggregation_name='sum', title=None):
+                   custom_aggregation_name='sum', title=None, dataset_info=None):
     """
     Generate and save multiclass ROC curve using One-vs-Rest approach
 
@@ -103,6 +109,7 @@ def plot_roc_curve(y_test, y_score, model_name, output_path,
         n_classes: Number of classes (default: 4)
         custom_aggregation_name: Name of aggregation function used
         title: Custom title (optional)
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         dict: Dictionary containing fpr, tpr, and roc_auc for each class
@@ -157,7 +164,11 @@ def plot_roc_curve(y_test, y_score, model_name, output_path,
     if title is None:
         title = f'ROC Curve (Multiclass) - {model_name}'
 
-    plt.title(f'{title}\n(Aggregation: {custom_aggregation_name})', fontsize=14)
+    # Build full title with dataset info if provided
+    full_title = f'{title}\n(Aggregation: {custom_aggregation_name})'
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}\n(Aggregation: {custom_aggregation_name})"
+    plt.title(full_title, fontsize=14)
     plt.legend(loc="lower right", fontsize=10)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -166,8 +177,9 @@ def plot_roc_curve(y_test, y_score, model_name, output_path,
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Save figure
-    filename = f"ROC_Curve_Multiclass_{model_name.replace(' ', '_')}_{custom_aggregation_name}.png"
+    # Save figure with dataset info in filename if provided
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    filename = f"ROC_Curve_Multiclass_{model_name.replace(' ', '_')}_{custom_aggregation_name}{suffix}.png"
     save_path = output_path / filename
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
@@ -184,7 +196,7 @@ def plot_roc_curve(y_test, y_score, model_name, output_path,
 
 def plot_classification_bar_chart(y_test, y_pred, model_name, output_path,
                                   is_tuned=False, custom_aggregation_name='sum',
-                                  title=None):
+                                  title=None, dataset_info=None):
     """
     Generate bar chart comparing actual vs predicted class distributions
 
@@ -196,6 +208,7 @@ def plot_classification_bar_chart(y_test, y_pred, model_name, output_path,
         is_tuned: Whether this is for a tuned model (affects subdirectory)
         custom_aggregation_name: Name of aggregation function used
         title: Custom title (optional)
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved bar chart
@@ -258,7 +271,11 @@ def plot_classification_bar_chart(y_test, y_pred, model_name, output_path,
     if title is None:
         title = f'Class Distribution: Actual vs Predicted - {model_name}'
 
-    plt.title(f'{title}\n(Aggregation: {custom_aggregation_name})', fontsize=14, fontweight='bold')
+    # Build full title with dataset info if provided
+    full_title = f'{title}\n(Aggregation: {custom_aggregation_name})'
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}\n(Aggregation: {custom_aggregation_name})"
+    plt.title(full_title, fontsize=14, fontweight='bold')
     plt.xticks(x, [f'Class {cls}' for cls in classes])
     plt.legend(loc='upper right', fontsize=11)
     plt.grid(True, alpha=0.3, axis='y')
@@ -268,8 +285,9 @@ def plot_classification_bar_chart(y_test, y_pred, model_name, output_path,
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Save figure
-    filename = f'classification_bar_{model_name}_{custom_aggregation_name}.png'
+    # Save figure with dataset info in filename if provided
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    filename = f'classification_bar_{model_name}_{custom_aggregation_name}{suffix}.png'
     save_path = output_path / filename
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()

@@ -13,7 +13,7 @@ from pathlib import Path
 
 def plot_cv_comparison_bars(results_df, output_path, metric='Test_F1',
                             title='CV Fold Comparison by Model',
-                            figsize=(12, 7)):
+                            figsize=(12, 7), dataset_info=None):
     """
     Create grouped bar chart comparing CV values across models.
 
@@ -23,6 +23,7 @@ def plot_cv_comparison_bars(results_df, output_path, metric='Test_F1',
         metric: Column name for the metric to plot (default: 'Test_F1')
         title: Title for the plot
         figsize: Figure size tuple
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved plot
@@ -64,7 +65,12 @@ def plot_cv_comparison_bars(results_df, output_path, metric='Test_F1',
     # Customize plot
     ax.set_xlabel('CV Folds', fontsize=12, fontweight='bold')
     ax.set_ylabel(metric.replace('_', ' '), fontsize=12, fontweight='bold')
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+
+    # Build title with dataset info if provided
+    full_title = title
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+    ax.set_title(full_title, fontsize=14, fontweight='bold', pad=15)
     ax.set_xticks(x)
     ax.set_xticklabels(pivot_df.index.astype(int))
     ax.legend(title='Models', bbox_to_anchor=(1.02, 1), loc='upper left')
@@ -81,7 +87,9 @@ def plot_cv_comparison_bars(results_df, output_path, metric='Test_F1',
     # Save figure
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    save_path = output_path / f'cv_comparison_bars_{metric.lower()}.png'
+    # Add dataset info to filename if provided
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    save_path = output_path / f'cv_comparison_bars_{metric.lower()}{suffix}.png'
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -93,7 +101,7 @@ def plot_cv_comparison_bars(results_df, output_path, metric='Test_F1',
 
 def plot_cv_trend_lines(results_df, output_path, metric='Test_F1',
                         title='CV Fold Trend Analysis',
-                        figsize=(12, 7)):
+                        figsize=(12, 7), dataset_info=None):
     """
     Create line plot showing metric trends across CV values for each model.
 
@@ -103,6 +111,7 @@ def plot_cv_trend_lines(results_df, output_path, metric='Test_F1',
         metric: Column name for the metric to plot (default: 'Test_F1')
         title: Title for the plot
         figsize: Figure size tuple
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved plot
@@ -131,7 +140,11 @@ def plot_cv_trend_lines(results_df, output_path, metric='Test_F1',
 
     ax.set_xlabel('CV Folds', fontsize=12, fontweight='bold')
     ax.set_ylabel(metric.replace('_', ' '), fontsize=12, fontweight='bold')
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+    # Build title with dataset info if provided
+    full_title = title
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+    ax.set_title(full_title, fontsize=14, fontweight='bold', pad=15)
     ax.legend(title='Models', bbox_to_anchor=(1.02, 1), loc='upper left')
     ax.grid(alpha=0.3, linestyle='--')
 
@@ -144,7 +157,8 @@ def plot_cv_trend_lines(results_df, output_path, metric='Test_F1',
     # Save figure
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    save_path = output_path / f'cv_trend_lines_{metric.lower()}.png'
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    save_path = output_path / f'cv_trend_lines_{metric.lower()}{suffix}.png'
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -156,7 +170,7 @@ def plot_cv_trend_lines(results_df, output_path, metric='Test_F1',
 
 def plot_cv_heatmap(results_df, output_path, metric='Test_F1',
                     title='Model Performance Heatmap (CV vs Model)',
-                    figsize=(10, 8)):
+                    figsize=(10, 8), dataset_info=None):
     """
     Create heatmap showing metric values for each model/CV combination.
 
@@ -166,6 +180,7 @@ def plot_cv_heatmap(results_df, output_path, metric='Test_F1',
         metric: Column name for the metric to plot (default: 'Test_F1')
         title: Title for the plot
         figsize: Figure size tuple
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved plot
@@ -184,7 +199,11 @@ def plot_cv_heatmap(results_df, output_path, metric='Test_F1',
                 linewidths=0.5, ax=ax, cbar_kws={'label': metric.replace('_', ' ')},
                 annot_kws={'size': 10, 'weight': 'bold'})
 
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+    # Build title with dataset info if provided
+    full_title = title
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+    ax.set_title(full_title, fontsize=14, fontweight='bold', pad=15)
     ax.set_xlabel('CV Folds', fontsize=12, fontweight='bold')
     ax.set_ylabel('Model', fontsize=12, fontweight='bold')
 
@@ -197,7 +216,8 @@ def plot_cv_heatmap(results_df, output_path, metric='Test_F1',
     # Save figure
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    save_path = output_path / f'cv_heatmap_{metric.lower()}.png'
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    save_path = output_path / f'cv_heatmap_{metric.lower()}{suffix}.png'
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -209,7 +229,7 @@ def plot_cv_heatmap(results_df, output_path, metric='Test_F1',
 
 def plot_cv_tuning_time(results_df, output_path,
                         title='Tuning Time by CV Folds',
-                        figsize=(12, 7)):
+                        figsize=(12, 7), dataset_info=None):
     """
     Create bar chart showing tuning time for each model/CV combination.
 
@@ -218,6 +238,7 @@ def plot_cv_tuning_time(results_df, output_path,
         output_path: Directory path where plot will be saved
         title: Title for the plot
         figsize: Figure size tuple
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved plot
@@ -236,7 +257,11 @@ def plot_cv_tuning_time(results_df, output_path,
 
     ax.set_xlabel('CV Folds', fontsize=12, fontweight='bold')
     ax.set_ylabel('Tuning Time (seconds)', fontsize=12, fontweight='bold')
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+    # Build title with dataset info if provided
+    full_title = title
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+    ax.set_title(full_title, fontsize=14, fontweight='bold', pad=15)
     ax.legend(title='Models', bbox_to_anchor=(1.02, 1), loc='upper left')
     ax.grid(axis='y', alpha=0.3, linestyle='--')
 
@@ -248,7 +273,8 @@ def plot_cv_tuning_time(results_df, output_path,
     # Save figure
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    save_path = output_path / 'cv_tuning_time.png'
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    save_path = output_path / f'cv_tuning_time{suffix}.png'
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -260,7 +286,7 @@ def plot_cv_tuning_time(results_df, output_path,
 
 def plot_cv_best_params_summary(results_df, output_path,
                                 title='Best Parameters Summary',
-                                figsize=(14, 8)):
+                                figsize=(14, 8), dataset_info=None):
     """
     Create a table visualization of best parameters for each model/CV combination.
 
@@ -269,6 +295,7 @@ def plot_cv_best_params_summary(results_df, output_path,
         output_path: Directory path where plot will be saved
         title: Title for the plot
         figsize: Figure size tuple
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved plot
@@ -328,14 +355,19 @@ def plot_cv_best_params_summary(results_df, output_path,
             if i % 2 == 0:
                 table[(i, j)].set_facecolor('#D6DCE4')
 
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=20, y=1.02)
+    # Build title with dataset info if provided
+    full_title = title
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+    ax.set_title(full_title, fontsize=14, fontweight='bold', pad=20, y=1.02)
 
     plt.tight_layout()
 
     # Save figure
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    save_path = output_path / 'cv_best_params_summary.png'
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    save_path = output_path / f'cv_best_params_summary{suffix}.png'
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -348,7 +380,7 @@ def plot_cv_best_params_summary(results_df, output_path,
 def plot_cv_metrics_comparison(results_df, output_path,
                                metrics=['Test_Accuracy', 'Test_F1', 'Test_AUC'],
                                title='Multi-Metric CV Comparison',
-                               figsize=(14, 10)):
+                               figsize=(14, 10), dataset_info=None):
     """
     Create subplot grid comparing multiple metrics across CV values.
 
@@ -358,6 +390,7 @@ def plot_cv_metrics_comparison(results_df, output_path,
         metrics: List of metric column names to compare
         title: Title for the plot
         figsize: Figure size tuple
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         Path: Full path to the saved plot
@@ -398,13 +431,18 @@ def plot_cv_metrics_comparison(results_df, output_path,
         cv_values = sorted(results_df['CV_Folds'].unique())
         ax.set_xticks(cv_values)
 
-    fig.suptitle(title, fontsize=14, fontweight='bold', y=1.02)
+    # Build title with dataset info if provided
+    full_title = title
+    if dataset_info:
+        full_title = f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+    fig.suptitle(full_title, fontsize=14, fontweight='bold', y=1.02)
     plt.tight_layout()
 
     # Save figure
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    save_path = output_path / 'cv_metrics_comparison.png'
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    save_path = output_path / f'cv_metrics_comparison{suffix}.png'
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -414,7 +452,7 @@ def plot_cv_metrics_comparison(results_df, output_path,
     return save_path
 
 
-def generate_cv_analysis_report(results_df, output_path, task_type='classification'):
+def generate_cv_analysis_report(results_df, output_path, task_type='classification', dataset_info=None):
     """
     Generate all CV analysis visualizations.
 
@@ -422,6 +460,7 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
         results_df: DataFrame with CV experiment results
         output_path: Directory path where plots will be saved
         task_type: 'classification' or 'regression'
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
 
     Returns:
         dict: Dictionary of saved plot paths
@@ -451,7 +490,8 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
     try:
         saved_plots['bars'] = plot_cv_comparison_bars(
             task_results, output_path, metric=primary_metric,
-            title=f'CV Comparison - {primary_metric.replace("_", " ")}'
+            title=f'CV Comparison - {primary_metric.replace("_", " ")}',
+            dataset_info=dataset_info
         )
     except Exception as e:
         print(f"[WARNING] Could not generate bar chart: {e}")
@@ -460,7 +500,8 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
     try:
         saved_plots['trends'] = plot_cv_trend_lines(
             task_results, output_path, metric=primary_metric,
-            title=f'CV Trend Analysis - {primary_metric.replace("_", " ")}'
+            title=f'CV Trend Analysis - {primary_metric.replace("_", " ")}',
+            dataset_info=dataset_info
         )
     except Exception as e:
         print(f"[WARNING] Could not generate trend lines: {e}")
@@ -469,7 +510,8 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
     try:
         saved_plots['heatmap'] = plot_cv_heatmap(
             task_results, output_path, metric=primary_metric,
-            title=f'Performance Heatmap - {primary_metric.replace("_", " ")}'
+            title=f'Performance Heatmap - {primary_metric.replace("_", " ")}',
+            dataset_info=dataset_info
         )
     except Exception as e:
         print(f"[WARNING] Could not generate heatmap: {e}")
@@ -479,7 +521,8 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
         try:
             saved_plots['tuning_time'] = plot_cv_tuning_time(
                 task_results, output_path,
-                title='Model Tuning Time by CV Folds'
+                title='Model Tuning Time by CV Folds',
+                dataset_info=dataset_info
             )
         except Exception as e:
             print(f"[WARNING] Could not generate tuning time chart: {e}")
@@ -489,7 +532,8 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
         try:
             saved_plots['params_summary'] = plot_cv_best_params_summary(
                 task_results, output_path,
-                title='Best Parameters Summary per Model'
+                title='Best Parameters Summary per Model',
+                dataset_info=dataset_info
             )
         except Exception as e:
             print(f"[WARNING] Could not generate params summary: {e}")
@@ -500,7 +544,8 @@ def generate_cv_analysis_report(results_df, output_path, task_type='classificati
         try:
             saved_plots['multi_metric'] = plot_cv_metrics_comparison(
                 task_results, output_path, metrics=available_metrics,
-                title=f'Multi-Metric Comparison ({task_type.capitalize()})'
+                title=f'Multi-Metric Comparison ({task_type.capitalize()})',
+                dataset_info=dataset_info
             )
         except Exception as e:
             print(f"[WARNING] Could not generate multi-metric comparison: {e}")

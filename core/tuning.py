@@ -5,6 +5,15 @@ This module handles hyperparameter tuning using GridSearchCV and RandomizedSearc
 """
 import pandas as pd
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+# Try to import hyperparameter overrides (optional)
+try:
+    from hyperparameters import CLF_PARAM_GRIDS as CLF_OVERRIDES, REG_PARAM_GRIDS as REG_OVERRIDES
+    _HAS_OVERRIDES = True
+except ImportError:
+    CLF_OVERRIDES = {}
+    REG_OVERRIDES = {}
+    _HAS_OVERRIDES = False
 from sklearn.ensemble import (RandomForestClassifier, RandomForestRegressor, GradientBoostingRegressor,
                               BaggingClassifier, BaggingRegressor, StackingClassifier, StackingRegressor)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -21,6 +30,13 @@ class ModelTuner:
 
     This class provides methods to tune different models using GridSearchCV
     or RandomizedSearchCV with predefined parameter grids.
+
+    Parameter Grid Priority:
+        1. Custom param_grid passed to tune_model() (highest priority)
+        2. Override grids defined in hyperparameters.py
+        3. Default grids defined in this class (CLF_PARAM_GRIDS, REG_PARAM_GRIDS)
+
+    To customize hyperparameters without modifying this file, edit hyperparameters.py
     """
 
     # Classification parameter grids
@@ -41,18 +57,18 @@ class ModelTuner:
             'criterion': ['gini', 'entropy'],
             'max_features': ['sqrt', 'log2', None]
         },
-        #'SVC': {
-        #    'C': [1, 10, 100],                    
-        #    'gamma': ['scale', 0.01, 0.1],        
-        #    'kernel': ['rbf', 'linear'],          
-        #    'class_weight': [None, 'balanced']   
-        #},
         'SVC': {
-            'C': [100],                    
-            'gamma': ['scale'],        
-            'kernel': ['rbf'],          
-            'class_weight': ['balanced']   
+            'C': [1, 10, 100],                    
+            'gamma': ['scale', 0.01, 0.1],        
+            'kernel': ['rbf', 'linear'],          
+            'class_weight': [None, 'balanced']   
         },
+        #'SVC': {
+        #    'C': [100],                    
+        #    'gamma': ['scale'],        
+        #    'kernel': ['rbf'],          
+        #    'class_weight': ['balanced']   
+        #},
         'KNN': {
             'n_neighbors': [3, 5, 7, 9, 11, 15],
             'weights': ['uniform', 'distance'],
@@ -116,12 +132,19 @@ class ModelTuner:
             'criterion': ['squared_error', 'friedman_mse', 'absolute_error'],
             'max_features': ['sqrt', 'log2', None]
         },
+        # 'DecisionTree': {
+        #     'max_depth': [None, 5, 6],
+        #     'min_samples_split': [2, 5],
+        #     'min_samples_leaf': [1, 2, 4],
+        #     'criterion': ['squared_error', 'friedman_mse', 'absolute_error'],
+        #     'max_features': ['sqrt', 'log2', None]
+        # },
         'SVM': {
             'C': [500],  # Wide range for regularization (higher C = less regularization)
             'gamma': ['scale', 'auto'],  # Kernel coefficient (lower gamma = smoother)
             'kernel': ['rbf'],  # Try different kernels
-            'epsilon': [0.01]  # Epsilon-tube width (smaller = tighter fit)
-            #'degree': [2]  # Only for poly kernel
+            'epsilon': [0.01],  # Epsilon-tube width (smaller = tighter fit)
+            'degree': [1, 2]  # Only for poly kernel
         },
         'KNN': {
             'n_neighbors': [3, 5, 7, 9, 11, 15],
@@ -241,6 +264,8 @@ class ModelTuner:
             print(f"  Search type: {search_type}")
             print(f"  CV folds: {cv}")
             print(f"  Scoring: {scoring}")
+            param_source = "hyperparameters.py (override)" if getattr(self, '_last_override_used', False) else "default"
+            print(f"  Parameter grid: {param_source}")
             print(f"  Parameter grid combinations: {self._count_combinations(param_grid)}")
 
         # Create search object
@@ -382,14 +407,28 @@ class ModelTuner:
         Returns:
             tuple: (base_model, param_grid)
         """
-        # Get parameter grid
+        # Get parameter grid (check overrides first, then fall back to defaults)
+        using_override = False
         if param_grid is None:
             if model_type == 'classification':
-                param_grid = self.CLF_PARAM_GRIDS.get(model_name)
+                # Check for override in hyperparameters.py first
+                if model_name in CLF_OVERRIDES:
+                    param_grid = CLF_OVERRIDES[model_name]
+                    using_override = True
+                else:
+                    param_grid = self.CLF_PARAM_GRIDS.get(model_name)
             else:  # regression
                 # Map 'SVC' to 'SVM' for regression
                 grid_name = 'SVM' if model_name == 'SVC' else model_name
-                param_grid = self.REG_PARAM_GRIDS.get(grid_name)
+                # Check for override in hyperparameters.py first
+                if grid_name in REG_OVERRIDES:
+                    param_grid = REG_OVERRIDES[grid_name]
+                    using_override = True
+                else:
+                    param_grid = self.REG_PARAM_GRIDS.get(grid_name)
+
+        # Store override status for verbose output
+        self._last_override_used = using_override
 
         if param_grid is None:
             raise ValueError(f"No parameter grid defined for {model_name} ({model_type})")
