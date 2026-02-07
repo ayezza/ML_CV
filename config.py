@@ -80,7 +80,7 @@ class Config:
     CLUSTERING_METHOD = 'kmeans'  # Options: 'qcut', 'kmeans'
 
     # Learning curve settings
-    GENERATE_LEARNING_CURVES = False  # Set to False to skip learning curve generation (saves time)
+    GENERATE_LEARNING_CURVES = True  # Set to False to skip learning curve generation (saves time)
     # Training set size fractions for learning curves
     LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]  
     # or LEARNING_CURVE_TRAIN_SIZES = np.linspace(0.1, 1.0, 10)
