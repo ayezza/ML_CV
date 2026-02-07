@@ -21,19 +21,21 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'winequality-white.csv'
+    DATA_PATH = DATA_DIR / 'energydata_complete.csv'
 
     # CSV delimiter setting
     # Options: 'auto' (auto-detect), ',' (comma), ';' (semicolon), '\t' (tab), etc.
     # Note: UCI wine quality datasets use semicolons as delimiters
-    CSV_DELIMITER = ';'  # Set to 'auto' for automatic detection or specify delimiter
+    CSV_DELIMITER = 'auto'  # Auto-detect delimiter (or use ',' or ';' explicitly)
 
     # Aggregation settings (replace the value for testing)
-    AGGREGATION_COLS = ['quality']    #  ['Temperature (C)'] # Columns to aggregate for target variable
+    # Columns to aggregate for target variable if multiple columns are specified, 
+    # they will be combined using the method defined in AGGREGATION_NAME
+    AGGREGATION_COLS = ['Appliances']    
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = ['quality'] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
+    EXCLUDE_COLS = ['Appliances', "rv1", "rv2"] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
@@ -56,18 +58,18 @@ class Config:
     N_JOBS = -1  # Use all CPU cores
 
     # Hyperparameter tuning strategy
-    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
+    SEARCH_TYPE = 'random'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
                             # 'grid': Tests all parameter combinations (can take hours with large grids)
                             # 'random': Randomly samples 20 combinations (typically within 1-2% of optimal)
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
 
     # Classification settings
-    N_CLASSES = 'auto'  # Number of classes for classification (computed based on data if 'auto')
+    N_CLASSES = 'auto' # Number of classes for classification (computed based on data if 'auto')
 
     # Categorical encoding settings
     # Columns with unique values <= threshold will be encoded (label or onehot)
     # Columns with unique values > threshold will be dropped (too many categories)
-    CATEGORICAL_ENCODING_THRESHOLD = 10  # Max unique values for encoding
+    CATEGORICAL_ENCODING_THRESHOLD = 100  # Max unique values for encoding
     CATEGORICAL_ENCODING_METHOD = 'label'  # Options: 'label' (LabelEncoder) or 'onehot' (OneHotEncoder)
 
     # Clustering method for creating classification labels
@@ -75,7 +77,7 @@ class Config:
     # 'qcut': Uses pd.qcut to create equal-frequency bins based on aggregated values
     # 'kmeans': Uses KMeans clustering to find natural groupings in (heating, cooling) space
     # Note: KMeans often produces better class separation and may improve classification accuracy
-    CLUSTERING_METHOD = 'kmeans'  # Options: 'qcut', 'kmeans'
+    CLUSTERING_METHOD = 'qcut'  # Options: 'qcut', 'kmeans'
 
     # Learning curve settings
     GENERATE_LEARNING_CURVES = False  # Set to False to skip learning curve generation (saves time)
@@ -83,7 +85,7 @@ class Config:
     LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]  
     # or LEARNING_CURVE_TRAIN_SIZES = np.linspace(0.1, 1.0, 10)
 
-    GENERATE_PREDS = False  # Whether to save model predictions to CSV files
+    GENERATE_PREDS = True  # Whether to save model predictions to CSV files
 
 
 

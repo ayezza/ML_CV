@@ -181,6 +181,7 @@ class MetricsCollector:
         rmse = root_mean_squared_error(y_test, y_pred)
         mae = mean_absolute_error(y_test, y_pred)
         max_err = max_error(y_test, y_pred)
+        mape = metrics.mean_absolute_percentage_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
 
         return {
@@ -188,6 +189,7 @@ class MetricsCollector:
             'RMSE': rmse,
             'MAE': mae,
             'Max_Error': max_err,
+            'MAPE': mape,
             'R2_Score': r2
         }
 
