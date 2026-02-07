@@ -234,15 +234,15 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             print(f"  Test accuracy: {test_metrics['Accuracy']:.5f}")
             print(f"  Best params: {best_params}")
 
-            # Generate learning curve (only for last CV value to avoid duplicates)
-            if cv == cv_values[-1]:
-                generate_learning_curve_for_model(
-                    model=best_model,
-                    X_train=X_train,
-                    y_train=y_train_clf,
-                    model_name=model_name,
-                    task_type='classification'
-                )
+            # Generate learning curve for each CV value to compare convergence
+            generate_learning_curve_for_model(
+                model=best_model,
+                X_train=X_train,
+                y_train=y_train_clf,
+                model_name=model_name,
+                task_type='classification',
+                cv=cv
+            )
 
     # Test regression
     if test_regression:
@@ -296,15 +296,15 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             print(f"  Test R²: {test_metrics['R2_Score']:.5f}")
             print(f"  Best params: {best_params}")
 
-            # Generate learning curve (only for last CV value to avoid duplicates)
-            if cv == cv_values[-1]:
-                generate_learning_curve_for_model(
-                    model=best_model,
-                    X_train=X_train_reg,
-                    y_train=y_train_reg,
-                    model_name=reg_model_name,
-                    task_type='regression'
-                )
+            # Generate learning curve for each CV value to compare convergence
+            generate_learning_curve_for_model(
+                model=best_model,
+                X_train=X_train_reg,
+                y_train=y_train_reg,
+                model_name=reg_model_name,
+                task_type='regression',
+                cv=cv
+            )
 
     # Create results DataFrame
     df_results = pd.DataFrame(results)
@@ -424,19 +424,20 @@ def get_learning_curve_trainer():
         _learning_curve_trainer = ModelTrainer(metrics_collector=metrics_collector, output_config=Config)
     return _learning_curve_trainer
 
-def generate_learning_curve_for_model(model, X_train, y_train, model_name, task_type):
+def generate_learning_curve_for_model(model, X_train, y_train, model_name, task_type, cv):
     """Generate learning curve for a trained model and collect stats"""
     if not Config.GENERATE_LEARNING_CURVES:
         return
 
     trainer = get_learning_curve_trainer()
-    trainer.generate_learning_curve(
+    trainer._generate_learning_curve(
         model=model,
         X_train=X_train,
         y_train=y_train,
         model_name=model_name,
         model_type=task_type,
-        search_type=Config.SEARCH_TYPE
+        search_type=Config.SEARCH_TYPE,
+        cv=cv
     )
 
 def generate_learning_curves_summary():

@@ -43,18 +43,11 @@ class Config:
     # Custom aggregation function (used when AGGREGATION_NAME = 'custom')
     CUSTOM_AGGREGATION_FUNCTION = lambda h, c: .920 * h + 4.064  # c not used - derived from h
 
-    # Example 2: Use both variables with custom weights
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (1 + 0.920) * h + 4.064  # Same as above
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: h * 1.5 + c * 0.5        # Custom weighted average
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: (h + c) / 2 + 10         # Mean with offset
-    # CUSTOM_AGGREGATION_FUNCTION = lambda h, c: h**2 + c**2              # Sum of squares
-
     # Model settings
     RANDOM_STATE = 42
     TEST_SIZE = 0.2
     CV_FOLDS = 10  # Cross-validation folds for hyperparameter tuning
                   # Options: 3 (fast), 5 (balanced - recommended), 10 (reliable but slower)
-                  # Run cv_experiment.py to test which CV value works best for your data (CV=3 seems fast and gives almost the same results as CV=5)
     N_JOBS = -1  # Use all CPU cores
 
     # Hyperparameter tuning strategy

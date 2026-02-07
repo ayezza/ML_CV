@@ -105,7 +105,7 @@ class ModelTrainer:
 
         return filepath
 
-    def _generate_learning_curve(self, model, X_train, y_train, model_name, model_type='classification', search_type='grid'):
+    def _generate_learning_curve(self, model, X_train, y_train, model_name, model_type='classification', search_type='grid', cv=None):
         """
         Generate learning curve for a trained model (internal helper method)
 
@@ -116,6 +116,7 @@ class ModelTrainer:
             model_name: Name of the model
             model_type: 'classification' or 'regression'
             search_type: 'grid' or 'random' for hyperparameter tuning method
+            cv: Number of CV folds (if None, uses config value)
         """
         if not self.output_config:
             return
@@ -134,8 +135,9 @@ class ModelTrainer:
         train_sizes = getattr(self.output_config, 'LEARNING_CURVE_TRAIN_SIZES',
                              [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
 
-        # Get CV folds from config
-        cv = getattr(self.output_config, 'CV_FOLDS', 5)
+        # Use provided CV value or fall back to config
+        if cv is None:
+            cv = getattr(self.output_config, 'CV_FOLDS', 5)
 
         # Get n_jobs from config
         n_jobs = getattr(self.output_config, 'N_JOBS', -1)

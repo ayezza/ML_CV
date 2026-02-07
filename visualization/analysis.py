@@ -537,8 +537,8 @@ def plot_learning_curve(estimator, X, y, model_name, model_type='classification'
         output_path = Path(output_path)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # Include search_type in filename for comparison
-        filename = f'{model_name}_{model_type}_{search_type}_learning_curve.png'
+        # Include search_type and CV in filename for comparison
+        filename = f'{model_name}_{model_type}_{search_type}_cv{cv}_learning_curve.png'
         save_path = output_path / filename
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
