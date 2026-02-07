@@ -31,6 +31,7 @@ Usage:
 import sys
 from pathlib import Path
 
+from core.models import ModelTrainer
 from visualization.analysis import plot_feature_distributions
 from visualization.cv_analysis import generate_cv_analysis_report
 
@@ -233,6 +234,7 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             print(f"  Test accuracy: {test_metrics['Accuracy']:.5f}")
             print(f"  Best params: {best_params}")
 
+
     # Test regression
     if test_regression:
         print("\n" + "="*80)
@@ -391,6 +393,28 @@ def save_results(df_results, output_path='./output/cv_experiment_results.xlsx'):
             reg_results.to_excel(writer, sheet_name='Regression', index=False)
 
     print(f"\n✓ Results saved to: {output_file}")
+
+def generate_learning_curves(model_name, task_type):
+    """Generate learning curves for a given model and dataset"""
+    if not Config.GENERATE_LEARNING_CURVES:
+        print("Learning curve generation is disabled in Config. Skipping...")
+        return
+
+    print(f"\nGenerating learning curves for {model_name} ({task_type})...")
+    train_sizes = Config.LEARNING_CURVE_TRAIN_SIZES
+   
+    # Use ModelTrainer to generate learning curves
+    metrics_collector = MetricsCollector()
+    trainer = ModelTrainer(metrics_collector=metrics_collector, output_config=Config)
+
+    # ========================================================================
+    # LEARNING CURVES SUMMARY TABLE (if enabled)
+    # ========================================================================
+    if Config.GENERATE_LEARNING_CURVES:
+        print("\nGenerate Learning Curves Summary Table")
+        print("-" * 80)
+        trainer.generate_learning_curves_summary()
+
 
 
 
@@ -558,7 +582,14 @@ if __name__ == '__main__':
                 )
 
         print(f"\nAll CV analysis graphs saved to: {cv_graphs_dir}")
-
+        
+        # Optionally, generate learning curves if enabled in Config
+        if Config.GENERATE_LEARNING_CURVES:
+            for model_name in (classification_models if test_classification else regression_models):
+                for task_type in (['classification'] if test_classification else ['regression']):
+                    generate_learning_curves(model_name=model_name, task_type=task_type)
+                    print(f"Learning curves generated for model '{model_name}' with task type '{task_type}'")
+      
     print("\n" + "="*80)
     print("RECOMMENDATION:")
     print("="*80)
