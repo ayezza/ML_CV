@@ -445,6 +445,7 @@ def plot_learning_curve(estimator, X, y, model_name, model_type='classification'
         'model_name': model_name,
         'model_type': model_type,
         'search_type': search_type,  # Include search_type for comparison
+        'cv_folds': cv,  # Number of CV folds used
         'train_score': train_scores_mean[-1],
         'train_std': train_scores_std[-1],
         'cv_score': test_scores_mean[-1],

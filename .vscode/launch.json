@@ -5,12 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File with Arguments",
+            "name": "CV Experiment - Classification",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "program": "./cv_experiment.py",
             "console": "integratedTerminal",
-            "args": "${command:pickArgs}"
+            "pythonArgs": ["-X", "utf8"],
+            "args": ["--cv", "3", "5", "10", "--task", "classification"]
         }
     ]
 }

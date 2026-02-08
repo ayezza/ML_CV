@@ -29,7 +29,12 @@ Usage:
     python cv_experiment.py --models SVC RandomForest --cv 3 5 10 --task both
 """
 import sys
+import traceback
 from pathlib import Path
+
+# Use non-interactive backend to avoid tkinter "main thread" errors
+import matplotlib
+matplotlib.use('Agg')
 
 from core.models import ModelTrainer
 from visualization.analysis import plot_feature_distributions
@@ -552,6 +557,7 @@ if __name__ == '__main__':
                 save_results(df_model, f'./output/reports/cv_experiment_{model_name}_{clustering_method}_classification.xlsx')
             except Exception as e:
                 print(f"  Error testing {model_name}: {e}")
+                traceback.print_exc()
                 continue
 
     # Test regression models
@@ -575,6 +581,7 @@ if __name__ == '__main__':
                 save_results(df_model, f'./output/reports/cv_experiment_{model_name}_{clustering_method}_regression.xlsx')
             except Exception as e:
                 print(f"  Error testing {model_name}: {e}")
+                traceback.print_exc()
                 continue
 
     # Combined results

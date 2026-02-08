@@ -76,16 +76,20 @@ def create_learning_curves_summary_table(stats_list, output_path=None):
 
         # Prepare table data (include Search Type column)
         table_data = []
-        headers = ['Model', 'Search', 'Train Score', 'CV Score', 'Gap', 'Diagnosis']
+        headers = ['Model', 'Search', 'CV Value', 'Train Score', 'CV Score', 'Gap', 'Diagnosis']
 
         for _, row in data.iterrows():
             # Get search_type, default to 'grid' if not present (for backward compatibility)
             search_type = row.get('search_type', 'grid')
             search_label = 'Grid' if search_type == 'grid' else 'Random'
 
+            # Get cv_folds, default to 'N/A' if not present
+            cv_folds = row.get('cv_folds', 'N/A')
+
             table_data.append([
                 row['model_name'],
                 search_label,
+                str(cv_folds),
                 f"{row['train_score']:.4f} (±{row['train_std']:.4f})",
                 f"{row['cv_score']:.4f} (±{row['cv_std']:.4f})",
                 f"{row['gap']:.4f}",
@@ -131,7 +135,7 @@ def create_learning_curves_summary_table(stats_list, output_path=None):
             # Apply colors
             for j in range(len(headers)):
                 cell = table[(i, j)]
-                if j == 4:  # Diagnosis column
+                if j == 6:  # Diagnosis column
                     cell.set_facecolor(diag_color)
                 else:
                     cell.set_facecolor(base_color)
@@ -167,12 +171,14 @@ def create_learning_curves_summary_table(stats_list, output_path=None):
 
         # Also print text summary
         print("\nCLASSIFICATION MODELS:")
-        print("-" * 80)
+        print("-" * 95)
         if not clf_df.empty:
-            print(f"{'Model':<25} {'Train Score':<20} {'CV Score':<20} {'Gap':<10} {'Diagnosis'}")
-            print("-" * 80)
+            print(f"{'Model':<25} {'CV':<5} {'Train Score':<20} {'CV Score':<20} {'Gap':<10} {'Diagnosis'}")
+            print("-" * 95)
             for _, row in clf_df.iterrows():
+                cv_folds = row.get('cv_folds', 'N/A')
                 print(f"{row['model_name']:<25} "
+                      f"{str(cv_folds):<5}"
                       f"{row['train_score']:.4f} (±{row['train_std']:.4f})"
                       f"  {row['cv_score']:.4f} (±{row['cv_std']:.4f})"
                       f"  {row['gap']:<8.4f}  {row['diagnosis']}")
@@ -180,12 +186,14 @@ def create_learning_curves_summary_table(stats_list, output_path=None):
             print("No classification models")
 
         print("\n\nREGRESSION MODELS:")
-        print("-" * 80)
+        print("-" * 95)
         if not reg_df.empty:
-            print(f"{'Model':<25} {'Train Score':<20} {'CV Score':<20} {'Gap':<10} {'Diagnosis'}")
-            print("-" * 80)
+            print(f"{'Model':<25} {'CV':<5} {'Train Score':<20} {'CV Score':<20} {'Gap':<10} {'Diagnosis'}")
+            print("-" * 95)
             for _, row in reg_df.iterrows():
+                cv_folds = row.get('cv_folds', 'N/A')
                 print(f"{row['model_name']:<25} "
+                      f"{str(cv_folds):<5}"
                       f"{row['train_score']:.4f} (±{row['train_std']:.4f})"
                       f"  {row['cv_score']:.4f} (±{row['cv_std']:.4f})"
                       f"  {row['gap']:<8.4f}  {row['diagnosis']}")
