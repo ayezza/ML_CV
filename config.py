@@ -13,7 +13,7 @@ class Config:
     DATA_DIR = BASE_DIR / 'data'
     OUTPUT_DIR = BASE_DIR / 'output'
 
-    # Input datasets paths that can be used for testing
+    # Input datasets paths already cleaned and optimized, that can be used for testing (you can add yours)
     # /////////////////////////////////////////////////////////////////////////////////////
     # ENB_data.csv: https://www.kaggle.com/datasets/elikplim/eergy-efficiency-dataset, 
     # bike_sharing_hour.csv:  https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset, 
@@ -53,7 +53,7 @@ class Config:
     # Hyperparameter tuning strategy
     SEARCH_TYPE = 'random'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
                             # 'grid': Tests all parameter combinations (can take hours with large grids)
-                            # 'random': Randomly samples 20 combinations (typically within 1-2% of optimal)
+                            # 'random': Randomly samples fixed combinations (typically within 1-2% of optimal)
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
 
     # Classification settings
