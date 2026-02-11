@@ -35,7 +35,7 @@ class Config:
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = ['Appliances','rv1', 'rv2'] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
+    EXCLUDE_COLS = ['date', 'Appliances','rv1', 'rv2'] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
@@ -51,14 +51,16 @@ class Config:
     N_JOBS = -1  # Use all CPU cores
 
     # Hyperparameter tuning strategy
-    SEARCH_TYPE = 'random'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
+    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
                             # 'grid': Tests all parameter combinations (can take hours with large grids)
                             # 'random': Randomly samples fixed combinations (typically within 1-2% of optimal)
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
 
     # Classification settings
-    # in energydata_complete.csv we have 92 unique values in the target column 'Appliances', so we set N_CLASSES to 92 for classification
-    N_CLASSES = 92  # Number of classes for classification (computed based on data if 'auto')
+    # N_CLASSES: Number of bins for converting continuous targets into classification labels
+    # Keep this small (3-5) regardless of unique values in the target column
+    # 92 unique values does NOT mean 92 classes - that creates classes with 1-2 samples each
+    N_CLASSES = 4  # Recommended: 3-5 for meaningful classification groups
 
     # Categorical encoding settings
     # Columns with unique values <= threshold will be encoded (label or onehot)
