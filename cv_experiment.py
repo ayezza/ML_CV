@@ -47,7 +47,7 @@ sys.path.insert(0, str(parent_dir))
 import time
 import pandas as pd
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.model_selection import train_test_split
 
 from config import Config
@@ -86,6 +86,10 @@ def prepare_data(test_classification=True):
         aggregation_name=Config.AGGREGATION_NAME
     )
     preprocessor.load_data()
+
+    # Remove outliers using IQR method (if enabled in Config)
+    if Config.REMOVE_OUTLIERS:
+        preprocessor.remove_outliers_iqr(multiplier=Config.OUTLIER_IQR_MULTIPLIER)
 
     # Create target variables - class finding happens here (only once!)
     preprocessor.create_target_variables(
@@ -133,6 +137,21 @@ def prepare_data(test_classification=True):
         X_train_reg_scaled = pd.DataFrame(X_train_reg_scaled, columns=feature_names_reg)
         X_test_reg_scaled = pd.DataFrame(X_test_reg_scaled, columns=feature_names_reg)
 
+    # Prepare polynomial features for linear regression models (if enabled)
+    X_train_reg_poly = None
+    X_test_reg_poly = None
+    if Config.USE_POLYNOMIAL_FEATURES:
+        degree = Config.POLYNOMIAL_DEGREE
+        print(f"\nGenerating polynomial features (degree={degree})...")
+        poly = PolynomialFeatures(degree=degree, include_bias=False)
+        X_train_reg_poly = poly.fit_transform(X_train_reg_scaled)
+        X_test_reg_poly = poly.transform(X_test_reg_scaled)
+        poly_feature_names = poly.get_feature_names_out(feature_names_reg) if feature_names_reg else None
+        X_train_reg_poly = pd.DataFrame(X_train_reg_poly, columns=poly_feature_names)
+        X_test_reg_poly = pd.DataFrame(X_test_reg_poly, columns=poly_feature_names)
+        print(f"  Original features: {X_train_reg_scaled.shape[1]}")
+        print(f"  Polynomial features: {X_train_reg_poly.shape[1]}")
+
     print("\nData preparation complete!")
     print("-"*80)
 
@@ -142,9 +161,12 @@ def prepare_data(test_classification=True):
         'X_test_clf': X_test_clf_scaled,
         'y_train_clf': y_train_clf,
         'y_test_clf': y_test_clf,
-        # Regression data
+        # Regression data (original scaled)
         'X_train_reg': X_train_reg_scaled,
         'X_test_reg': X_test_reg_scaled,
+        # Regression data (polynomial - for linear models only)
+        'X_train_reg_poly': X_train_reg_poly,
+        'X_test_reg_poly': X_test_reg_poly,
         'y_train_reg': y_train_reg,
         'y_test_reg': y_test_reg,
         # Metadata
@@ -181,9 +203,14 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
     y_test_clf = prepared_data['y_test_clf']
     X_train_reg = prepared_data['X_train_reg']
     X_test_reg = prepared_data['X_test_reg']
+    X_train_reg_poly = prepared_data.get('X_train_reg_poly')
+    X_test_reg_poly = prepared_data.get('X_test_reg_poly')
     y_train_reg = prepared_data['y_train_reg']
     y_test_reg = prepared_data['y_test_reg']
     actual_n_classes = prepared_data['actual_n_classes']
+
+    # Models that benefit from polynomial features (linear models only)
+    LINEAR_MODELS = {'Ridge', 'Lasso', 'ElasticNet', 'LinearRegression'}
 
     results = []
 
@@ -267,8 +294,19 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             # Map model names for regression
             reg_model_name = 'SVM' if model_name == 'SVC' else model_name
 
+            # Use polynomial features for linear models, original for tree-based
+            use_poly = (reg_model_name in LINEAR_MODELS
+                        and X_train_reg_poly is not None)
+            X_tr = X_train_reg_poly if use_poly else X_train_reg
+            X_te = X_test_reg_poly if use_poly else X_test_reg
+
+            if use_poly:
+                print(f"  Using polynomial features ({X_tr.shape[1]} features)")
+            else:
+                print(f"  Using original features ({X_tr.shape[1]} features)")
+
             best_model, best_params, best_score = tuner.tune_model(
-                X_train_reg, y_train_reg,
+                X_tr, y_train_reg,
                 model_type='regression',
                 model_name=reg_model_name,
                 search_type=Config.SEARCH_TYPE,
@@ -278,7 +316,7 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             tuning_time = time.time() - start_time
 
             # Evaluate on test set
-            y_pred = best_model.predict(X_test_reg)
+            y_pred = best_model.predict(X_te)
 
             test_metrics = metrics_collector.collect_regression_metrics(
                 y_test_reg, y_pred
@@ -304,7 +342,7 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             # Generate learning curve for each CV value to compare convergence
             generate_learning_curve_for_model(
                 model=best_model,
-                X_train=X_train_reg,
+                X_train=X_tr,
                 y_train=y_train_reg,
                 model_name=reg_model_name,
                 task_type='regression',

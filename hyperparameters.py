@@ -76,9 +76,9 @@ CLF_PARAM_GRIDS = {
 
 REG_PARAM_GRIDS = {
     # 'RandomForest': {
-    #     'n_estimators': [50, 100, 200],
-    #     'max_depth': [None, 5, 10, 15],
-    #     'min_samples_split': [2, 5, 10],
+    #     'n_estimators': [10, 20, 100],
+    #     'max_depth': [3, 5, 7],
+    #     'min_samples_split': [8, 16, 32],
     #     'min_samples_leaf': [1, 2, 4],
     # },
     # 'DecisionTree': {
@@ -105,8 +105,8 @@ REG_PARAM_GRIDS = {
     #     'alpha': [0.001, 0.01, 0.1, 1],
     # },
     # 'ElasticNet': {
-    #     'alpha': [0.01, 0.1, 1],
-    #     'l1_ratio': [0.2, 0.5, 0.8],
+    #     'alpha': [1, 10, 100],
+    #     'l1_ratio': [0.2, 0.5, 0.8, 1.0],
     # },
     # 'GradientBoosting': {
     #     'n_estimators': [50, 100, 200],

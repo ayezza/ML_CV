@@ -165,6 +165,89 @@ class DataPreprocessor:
             print(f"   Details: {str(e)}")
             raise RuntimeError(error_msg) from e
 
+    def remove_outliers_iqr(self, multiplier=1.5):
+        """
+        Remove outliers from numeric columns using the IQR method.
+
+        For each numeric column:
+            Q1 = 25th percentile, Q3 = 75th percentile
+            IQR = Q3 - Q1
+            Lower bound = Q1 - multiplier * IQR
+            Upper bound = Q3 + multiplier * IQR
+            Rows outside bounds are removed.
+
+        Args:
+            multiplier: IQR multiplier (default: 1.5 for standard, 3.0 for extreme only)
+
+        Returns:
+            DataFrame: Cleaned dataframe with outliers removed
+        """
+        if self.df is None:
+            raise ValueError("No data loaded. Call load_data() first.")
+
+        print("=" * 80)
+        print(" OUTLIER REMOVAL (IQR Method)".center(80))
+        print("=" * 80)
+        print(f"  IQR multiplier: {multiplier}")
+
+        rows_before = len(self.df)
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
+
+        if not numeric_cols:
+            print("  No numeric columns found. Skipping outlier removal.")
+            return self.df
+
+        # Build a combined mask: True = keep row
+        mask = pd.Series(True, index=self.df.index)
+        outlier_details = []
+
+        for col in numeric_cols:
+            q1 = self.df[col].quantile(0.25)
+            q3 = self.df[col].quantile(0.75)
+            iqr = q3 - q1
+
+            lower_bound = q1 - multiplier * iqr
+            upper_bound = q3 + multiplier * iqr
+
+            col_mask = (self.df[col] >= lower_bound) & (self.df[col] <= upper_bound)
+            col_outliers = (~col_mask).sum()
+
+            if col_outliers > 0:
+                outlier_details.append({
+                    'column': col,
+                    'outliers': col_outliers,
+                    'lower': lower_bound,
+                    'upper': upper_bound,
+                    'q1': q1,
+                    'q3': q3,
+                    'iqr': iqr
+                })
+
+            mask &= col_mask
+
+        # Apply mask
+        self.df = self.df[mask].reset_index(drop=True)
+        rows_after = len(self.df)
+        rows_removed = rows_before - rows_after
+
+        # Print summary
+        print(f"\n  Rows before: {rows_before}")
+        print(f"  Rows after:  {rows_after}")
+        print(f"  Rows removed: {rows_removed} ({100 * rows_removed / rows_before:.2f}%)")
+
+        if outlier_details:
+            print(f"\n  Columns with outliers detected:")
+            print(f"  {'Column':<30} {'Outliers':<10} {'Lower Bound':<15} {'Upper Bound':<15}")
+            print(f"  {'-'*70}")
+            for d in outlier_details:
+                print(f"  {d['column']:<30} {d['outliers']:<10} {d['lower']:<15.4f} {d['upper']:<15.4f}")
+        else:
+            print("  No outliers detected in any column.")
+
+        print("=" * 80 + "\n")
+
+        return self.df
+
     def compute_correlations(self, method='pearson'):
         """
         Compute correlation matrix

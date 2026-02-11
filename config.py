@@ -21,21 +21,33 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'energydata_complete.csv'
+    DATA_PATH = DATA_DIR / 'winequality-white.csv'
 
     # CSV delimiter setting
     # Options: 'auto' (auto-detect), ',' (comma), ';' (semicolon), '\t' (tab), etc.
     # Note: UCI wine quality datasets use semicolons as delimiters
     CSV_DELIMITER = 'auto'  # Auto-detect delimiter (or use ',' or ';' explicitly)
 
+    # Outlier removal settings (IQR method)
+    REMOVE_OUTLIERS = True  # Set to False to skip outlier removal depending on dataset and model choice
+    # iqr = q3 - q1, lower_bound = q1 - 1.5 * iqr, upper_bound = q3 + 1.5 * iqr
+    OUTLIER_IQR_MULTIPLIER = 1.5  # 1.5 = standard (moderate), 3.0 = extreme outliers only
+
+    # Polynomial features settings (for linear regression models only)
+    # Only applied to: Ridge, Lasso, ElasticNet, LinearRegression
+    # Tree-based models (RF, GBT, XGBoost, LightGBM) use original features
+    USE_POLYNOMIAL_FEATURES = False  # Set to False to skip polynomial transformation
+    POLYNOMIAL_DEGREE = 2  # Degree of polynomial features (2 = quadratic, 3 = cubic)
+
     # Aggregation settings (replace the value for testing)
     # Columns to aggregate for target variable if multiple columns are specified, 
-    # they will be combined using the method defined in AGGREGATION_NAME
-    AGGREGATION_COLS = ['Appliances']    
+    # they will be combined using the function defined in AGGREGATION_NAME
+    AGGREGATION_COLS = ['quality']    
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = ['date', 'Appliances','rv1', 'rv2'] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
+    EXCLUDE_COLS = [ 'quality']
+
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
@@ -60,7 +72,7 @@ class Config:
     # N_CLASSES: Number of bins for converting continuous targets into classification labels
     # Keep this small (3-5) regardless of unique values in the target column
     # 92 unique values does NOT mean 92 classes - that creates classes with 1-2 samples each
-    N_CLASSES = 4  # Recommended: 3-5 for meaningful classification groups
+    N_CLASSES = 7  # Recommended: 3-5 for meaningful classification groups
 
     # Categorical encoding settings
     # Columns with unique values <= threshold will be encoded (label or onehot)
@@ -81,7 +93,7 @@ class Config:
     LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]  
     # or LEARNING_CURVE_TRAIN_SIZES = np.linspace(0.1, 1.0, 10)
 
-    GENERATE_PREDS = True  # Whether to save model predictions to CSV files
+    GENERATE_PREDS = False  # Whether to save model predictions to CSV files
 
 
 
@@ -266,6 +278,8 @@ class Config:
         print(f"REGRESSION PREDICTIONS DIRECTORY:      {cls.REG_PREDICTIONS_DIR}")
         print(f"Dataset Name:       {cls.get_dataset_name()}")
         print(f"CSV Delimiter:      {cls.CSV_DELIMITER}")
+        print(f"Remove Outliers:    {cls.REMOVE_OUTLIERS} (IQR multiplier: {cls.OUTLIER_IQR_MULTIPLIER})")
+        print(f"Polynomial Features: {cls.USE_POLYNOMIAL_FEATURES} (degree: {cls.POLYNOMIAL_DEGREE})")
         print(f"Exclude Columns:    {cls.EXCLUDE_COLS}")
         print(f"Target Columns:     {cls.get_target_cols_str()}")
         print(f"AGGREGATION COLUMNS:  {cls.AGGREGATION_COLS}")
