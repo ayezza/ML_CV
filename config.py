@@ -2,7 +2,7 @@
 Configuration file for ML Pipeline
 All settings and constants are defined here
 """
-import os
+
 from pathlib import Path
 
 class Config:
@@ -21,7 +21,7 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'superconductivty_train.csv'
+    DATA_PATH = DATA_DIR / 'energydata_complete.csv'
 
     # CSV delimiter setting
     # Options: 'auto' (auto-detect), ',' (comma), ';' (semicolon), '\t' (tab), etc.
@@ -31,11 +31,11 @@ class Config:
     # Aggregation settings (replace the value for testing)
     # Columns to aggregate for target variable if multiple columns are specified, 
     # they will be combined using the method defined in AGGREGATION_NAME
-    AGGREGATION_COLS = ['critical_temp']    
+    AGGREGATION_COLS = ['Appliances']    
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = ['critical_temp','material'] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
+    EXCLUDE_COLS = ['Appliances','rv1', 'rv2'] # ['Formatted Date', 'Summary', 'Loud Cover', 'Daily Summary']  # Example: ['id', 'name', 'timestamp']
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
     AGGREGATION_NAME = 'sum'  # Options: 'sum', 'mean', 'geometric_mean', 'manhattan', 'euclidean', 'rms', 'weighted', 'weighted_70_30', 'power_mean_3', 'chebyshev', 'minkowski', 'seuclidean', 'mahalanobis', 'custom'
@@ -57,7 +57,8 @@ class Config:
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
 
     # Classification settings
-    N_CLASSES = 'auto' # Number of classes for classification (computed based on data if 'auto')
+    # in energydata_complete.csv we have 92 unique values in the target column 'Appliances', so we set N_CLASSES to 92 for classification
+    N_CLASSES = 92  # Number of classes for classification (computed based on data if 'auto')
 
     # Categorical encoding settings
     # Columns with unique values <= threshold will be encoded (label or onehot)
