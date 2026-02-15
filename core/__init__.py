@@ -13,14 +13,6 @@ from .models import (
 from .tuning import (
     ModelTuner
 )
-from .prediction import (
-    ModelPredictor,
-    predict_new_data
-)
-from .multioutput import (
-    MultiOutputPredictor,
-    create_multioutput_targets
-)
 
 __version__ = '1.0.0'
 
