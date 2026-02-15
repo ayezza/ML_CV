@@ -526,12 +526,26 @@ class DataPreprocessor:
 
             else:  # pandas qcut (default)
                 # Use quantile-based binning on aggregated values
+                # First pass without labels to determine actual number of bins
+                # (duplicates='drop' may reduce bins when data has many repeated values)
+                binned = pd.qcut(
+                    self.df[self.aggregated_var_name],
+                    q=n_classes,
+                    duplicates='drop'
+                )
+                actual_n_classes = len(binned.cat.categories)
+                if actual_n_classes < n_classes:
+                    print(f"  Note: Requested {n_classes} bins but data only supports "
+                          f"{actual_n_classes} (duplicate quantile boundaries dropped)")
+
+                # Second pass with correct number of labels
                 self.df[self.class_var_name] = pd.qcut(
                     self.df[self.aggregated_var_name],
                     q=n_classes,
-                    labels=list(range(n_classes)),
+                    labels=list(range(actual_n_classes)),
                     duplicates='drop'
                 )
+                n_classes = actual_n_classes
 
                 print(f"✓ Created {n_classes} classes using quantile-based binning (qcut)")
 

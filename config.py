@@ -21,7 +21,7 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'winequality-white.csv'
+    DATA_PATH = DATA_DIR / 'ENB_data.csv'
 
     # CSV delimiter setting
     # Options: 'auto' (auto-detect), ',' (comma), ';' (semicolon), '\t' (tab), etc.
@@ -42,11 +42,11 @@ class Config:
     # Aggregation settings (replace the value for testing)
     # Columns to aggregate for target variable if multiple columns are specified, 
     # they will be combined using the function defined in AGGREGATION_NAME
-    AGGREGATION_COLS = ['quality']    
+    AGGREGATION_COLS = ['heating_load', 'cooling_load']  
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = [ 'quality']
+    EXCLUDE_COLS = ['heating_load', 'cooling_load']  
 
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
@@ -63,7 +63,7 @@ class Config:
     N_JOBS = -1  # Use all CPU cores
 
     # Hyperparameter tuning strategy
-    SEARCH_TYPE = 'grid'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
+    SEARCH_TYPE = 'random'  # Options: 'grid' (exhaustive but slow) or 'random' (fast, 20-30x faster)
                             # 'grid': Tests all parameter combinations (can take hours with large grids)
                             # 'random': Randomly samples fixed combinations (typically within 1-2% of optimal)
                             # Recommendation: Use 'random' for testing/experimentation, 'grid' for final runs
@@ -72,7 +72,7 @@ class Config:
     # N_CLASSES: Number of bins for converting continuous targets into classification labels
     # Keep this small (3-5) regardless of unique values in the target column
     # 92 unique values does NOT mean 92 classes - that creates classes with 1-2 samples each
-    N_CLASSES = 7  # Recommended: 3-5 for meaningful classification groups
+    N_CLASSES = 'auto'  # Recommended: 3-5 for meaningful classification groups
 
     # Categorical encoding settings
     # Columns with unique values <= threshold will be encoded (label or onehot)
