@@ -446,6 +446,7 @@ def plot_learning_curve(estimator, X, y, model_name, model_type='classification'
         'model_type': model_type,
         'search_type': search_type,  # Include search_type for comparison
         'cv_folds': cv,  # Number of CV folds used
+        'scoring': scoring,  # Scoring metric used
         'train_score': train_scores_mean[-1],
         'train_std': train_scores_std[-1],
         'cv_score': test_scores_mean[-1],
@@ -538,8 +539,8 @@ def plot_learning_curve(estimator, X, y, model_name, model_type='classification'
         output_path = Path(output_path)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # Include search_type and CV in filename for comparison
-        filename = f'{model_name}_{model_type}_{search_type}_cv{cv}_learning_curve.png'
+        # Include search_type, CV, and scoring in filename for comparison
+        filename = f'{model_name}_{model_type}_{search_type}_cv{cv}_{scoring}_learning_curve.png'
         save_path = output_path / filename
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()

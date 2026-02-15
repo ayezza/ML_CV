@@ -90,8 +90,16 @@ class Config:
     # Learning curve settings
     GENERATE_LEARNING_CURVES = True  # Set to False to skip learning curve generation (saves time)
     # Training set size fractions for learning curves
-    LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]  
+    LEARNING_CURVE_TRAIN_SIZES = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, .45, 0.5, .55, 0.6, .65,  0.7, .75,  0.8, .85, 0.9, .95, 1.0]
     # or LEARNING_CURVE_TRAIN_SIZES = np.linspace(0.1, 1.0, 10)
+
+    # Scoring metric for classification learning curves
+    # Options: 'accuracy', 'f1' (f1_weighted), 'both' (generates 2 curves per model)
+    CLF_LEARNING_CURVES_SCORE = 'both'  # Use 'both' to compare accuracy vs F1 on imbalanced datasets
+
+    # Scoring metric for regression learning curves
+    # Options: 'r2', 'rmse' (neg_root_mean_squared_error), 'mae' (neg_mean_absolute_error), 'both' (r2 + rmse)
+    REG_LEARNING_CURVES_SCORE = 'both'  # Use 'both' to compare R² vs RMSE convergence
 
     GENERATE_PREDS = False  # Whether to save model predictions to CSV files
 
@@ -293,6 +301,8 @@ class Config:
         print(f"DPI:                {cls.DPI}")
         print(f"Matplotlib Backend: {cls.MATPLOTLIB_BACKEND}")
         print(f"Generate Learning Curves: {cls.GENERATE_LEARNING_CURVES}")
+        print(f"CLF Learning Curves Score:  {cls.CLF_LEARNING_CURVES_SCORE}")
+        print(f"REG Learning Curves Score:  {cls.REG_LEARNING_CURVES_SCORE}")
         print(f"Learning Curve Train Sizes: {cls.LEARNING_CURVE_TRAIN_SIZES}")
         print(f"Search Type:        {cls.SEARCH_TYPE}")
         print(f"Clustering Method:  {cls.CLUSTERING_METHOD}")

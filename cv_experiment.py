@@ -468,20 +468,48 @@ def get_learning_curve_trainer():
     return _learning_curve_trainer
 
 def generate_learning_curve_for_model(model, X_train, y_train, model_name, task_type, cv):
-    """Generate learning curve for a trained model and collect stats"""
+    """Generate learning curve for a trained model and collect stats.
+
+    For classification: uses Config.CLF_LEARNING_CURVES_SCORE ('accuracy', 'f1', or 'both')
+    For regression: uses Config.REG_LEARNING_CURVES_SCORE ('r2', 'rmse', 'mae', or 'both')
+    """
     if not Config.GENERATE_LEARNING_CURVES:
         return
 
     trainer = get_learning_curve_trainer()
-    trainer._generate_learning_curve(
-        model=model,
-        X_train=X_train,
-        y_train=y_train,
-        model_name=model_name,
-        model_type=task_type,
-        search_type=Config.SEARCH_TYPE,
-        cv=cv
-    )
+
+    # Determine scoring metric(s) based on task type
+    if task_type == 'classification':
+        score_setting = getattr(Config, 'CLF_LEARNING_CURVES_SCORE', 'accuracy')
+        if score_setting == 'both':
+            scoring_list = ['accuracy', 'f1_weighted']
+        elif score_setting == 'f1':
+            scoring_list = ['f1_weighted']
+        else:
+            scoring_list = ['accuracy']
+    else:
+        # Regression scoring from config
+        reg_score_setting = getattr(Config, 'REG_LEARNING_CURVES_SCORE', 'r2')
+        if reg_score_setting == 'both':
+            scoring_list = ['r2', 'neg_root_mean_squared_error']
+        elif reg_score_setting == 'rmse':
+            scoring_list = ['neg_root_mean_squared_error']
+        elif reg_score_setting == 'mae':
+            scoring_list = ['neg_mean_absolute_error']
+        else:
+            scoring_list = ['r2']
+
+    for scoring in scoring_list:
+        trainer._generate_learning_curve(
+            model=model,
+            X_train=X_train,
+            y_train=y_train,
+            model_name=model_name,
+            model_type=task_type,
+            search_type=Config.SEARCH_TYPE,
+            cv=cv,
+            scoring=scoring
+        )
 
 def generate_learning_curves_summary():
     """Generate summary table from all collected learning curve stats"""

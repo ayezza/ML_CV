@@ -105,7 +105,7 @@ class ModelTrainer:
 
         return filepath
 
-    def _generate_learning_curve(self, model, X_train, y_train, model_name, model_type='classification', search_type='grid', cv=None):
+    def _generate_learning_curve(self, model, X_train, y_train, model_name, model_type='classification', search_type='grid', cv=None, scoring=None):
         """
         Generate learning curve for a trained model (internal helper method)
 
@@ -117,6 +117,7 @@ class ModelTrainer:
             model_type: 'classification' or 'regression'
             search_type: 'grid' or 'random' for hyperparameter tuning method
             cv: Number of CV folds (if None, uses config value)
+            scoring: Scoring metric (if None, uses default: 'accuracy' for clf, 'r2' for reg)
         """
         if not self.output_config:
             return
@@ -154,9 +155,9 @@ class ModelTrainer:
                 cv=cv,
                 n_jobs=n_jobs,
                 train_sizes=train_sizes,
-                scoring=None,  # Use default scoring
+                scoring=scoring,
                 figsize=(10, 6),
-                search_type=search_type  # Pass search_type for filename and labeling
+                search_type=search_type
             )
             # Collect stats for summary table
             if stats:
