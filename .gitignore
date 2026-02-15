@@ -187,3 +187,4 @@ cython_debug/
 ./docs/~*.*
 docs/MACHINE_LEARNING_CROSS_VALIDATION.docx
 docs/~$CHINE_LEARNING_CROSS_VALIDATION.docx
+/docs
