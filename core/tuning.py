@@ -14,6 +14,13 @@ except ImportError:
     CLF_OVERRIDES = {}
     REG_OVERRIDES = {}
     _HAS_OVERRIDES = False
+
+# Try to import n_iter overrides (optional)
+try:
+    from hyperparameters import CLF_N_ITER as CLF_N_ITER_OVERRIDES, REG_N_ITER as REG_N_ITER_OVERRIDES
+except ImportError:
+    CLF_N_ITER_OVERRIDES = {}
+    REG_N_ITER_OVERRIDES = {}
 from sklearn.ensemble import (RandomForestClassifier, RandomForestRegressor, GradientBoostingRegressor,
                               BaggingClassifier, BaggingRegressor, StackingClassifier, StackingRegressor)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -38,6 +45,37 @@ class ModelTuner:
 
     To customize hyperparameters without modifying this file, edit hyperparameters.py
     """
+
+    # Per-model n_iter for RandomizedSearchCV
+    # Each value is tuned relative to the model's parameter grid size
+    # Models with small grids get fewer iterations (no point exceeding total combinations)
+    # Models with large grids get more iterations for better coverage
+    CLF_N_ITER = {
+        'RandomForest': 30,        # Grid: ~900 combinations
+        'DecisionTree': 25,        # Grid: ~360 combinations
+        'SVC': 20,                 # Grid: ~36 combinations
+        'KNN': 20,                 # Grid: ~36 combinations
+        'LogisticRegression': 25,  # Grid: ~52 combinations (list of dicts)
+        'NaiveBayes': 8,           # Grid: 8 combinations (exhaustive)
+        'Bagging': 15,             # Grid: ~27 combinations
+        'Stacking': 2,             # Grid: 2 combinations (exhaustive)
+    }
+
+    REG_N_ITER = {
+        'RandomForest': 30,        # Grid: ~900 combinations
+        'DecisionTree': 25,        # Grid: ~360 combinations
+        'SVM': 20,                 # Grid: ~96 combinations
+        'KNN': 20,                 # Grid: ~36 combinations
+        'LinearRegression': 2,     # Grid: 2 combinations (exhaustive)
+        'Ridge': 15,               # Grid: ~16 combinations
+        'Lasso': 10,               # Grid: ~8 combinations
+        'ElasticNet': 15,          # Grid: ~32 combinations
+        'GradientBoosting': 30,    # Grid: ~300 combinations
+        'XGBoost': 25,             # Grid: ~108 combinations
+        'LightGBM': 25,            # Grid: ~108 combinations
+        'Bagging': 15,             # Grid: ~36 combinations
+        'Stacking': 2,             # Grid: 2 combinations (exhaustive)
+    }
 
     # Classification parameter grids
     # Depending on the model and its tuned hyperparameters, these grids can be adjusted to improve performance and speed up tuning
@@ -259,13 +297,22 @@ class ModelTuner:
         scoring = 'f1_macro' if model_type == 'classification' else 'r2'
 
         if verbose:
+            total_combinations = self._count_combinations(param_grid)
             print(f"\nConfiguration:")
             print(f"  Search type: {search_type}")
             print(f"  CV folds: {cv}")
             print(f"  Scoring: {scoring}")
             param_source = "hyperparameters.py (override)" if getattr(self, '_last_override_used', False) else "default"
             print(f"  Parameter grid: {param_source}")
-            print(f"  Parameter grid combinations: {self._count_combinations(param_grid)}")
+            print(f"  Parameter grid combinations: {total_combinations}")
+            if search_type == 'random':
+                grid_name = 'SVM' if (model_type == 'regression' and model_name == 'SVC') else model_name
+                if model_type == 'classification':
+                    n_iter = CLF_N_ITER_OVERRIDES.get(grid_name, self.CLF_N_ITER.get(grid_name, 20))
+                else:
+                    n_iter = REG_N_ITER_OVERRIDES.get(grid_name, self.REG_N_ITER.get(grid_name, 20))
+                n_iter = min(n_iter, total_combinations)
+                print(f"  Random search n_iter: {n_iter} / {total_combinations}")
 
         # Create search object
         if search_type == 'grid':
@@ -279,10 +326,21 @@ class ModelTuner:
                 error_score='raise'
             )
         else:  # random search
+            # Get per-model n_iter: check overrides first, then defaults
+            grid_name = 'SVM' if (model_type == 'regression' and model_name == 'SVC') else model_name
+            if model_type == 'classification':
+                n_iter = CLF_N_ITER_OVERRIDES.get(grid_name, self.CLF_N_ITER.get(grid_name, 20))
+            else:
+                n_iter = REG_N_ITER_OVERRIDES.get(grid_name, self.REG_N_ITER.get(grid_name, 20))
+
+            # Cap n_iter to total combinations (no point sampling more than exists)
+            total_combinations = self._count_combinations(param_grid)
+            n_iter = min(n_iter, total_combinations)
+
             search_cv = RandomizedSearchCV(
                 base_model,
                 param_grid,
-                n_iter=20,
+                n_iter=n_iter,
                 cv=cv,
                 scoring=scoring,
                 n_jobs=-1,

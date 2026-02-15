@@ -69,6 +69,41 @@ CLF_PARAM_GRIDS = {
 
 
 # =============================================================================
+# N_ITER OVERRIDES FOR RANDOMIZED SEARCH (per model)
+# =============================================================================
+# Override the default n_iter values for RandomizedSearchCV
+# Only applies when SEARCH_TYPE = 'random' in config.py
+# Leave empty {} to use defaults from ModelTuner
+
+CLF_N_ITER = {
+    # 'RandomForest': 30,        # Grid: ~900 combinations
+    # 'DecisionTree': 25,        # Grid: ~360 combinations
+    # 'SVC': 20,                 # Grid: ~36 combinations
+    # 'KNN': 20,                 # Grid: ~36 combinations
+    # 'LogisticRegression': 25,  # Grid: ~52 combinations (list of dicts)
+    # 'NaiveBayes': 8,           # Grid: 8 combinations (exhaustive)
+    # 'Bagging': 15,             # Grid: ~27 combinations
+    # 'Stacking': 2,             # Grid: 2 combinations (exhaustive)
+}
+
+REG_N_ITER = {
+    # 'RandomForest': 30,        # Grid: ~900 combinations
+    # 'DecisionTree': 25,        # Grid: ~360 combinations
+    # 'SVM': 20,                 # Grid: ~96 combinations
+    # 'KNN': 20,                 # Grid: ~36 combinations
+    # 'LinearRegression': 2,     # Grid: 2 combinations (exhaustive)
+    # 'Ridge': 15,               # Grid: ~16 combinations
+    # 'Lasso': 10,               # Grid: ~8 combinations
+    # 'ElasticNet': 15,          # Grid: ~32 combinations
+    # 'GradientBoosting': 30,    # Grid: ~300 combinations
+    # 'XGBoost': 25,             # Grid: ~108 combinations
+    # 'LightGBM': 25,            # Grid: ~108 combinations
+    # 'Bagging': 15,             # Grid: ~36 combinations
+    # 'Stacking': 2,             # Grid: 2 combinations (exhaustive)
+}
+
+
+# =============================================================================
 # REGRESSION HYPERPARAMETER OVERRIDES
 # =============================================================================
 # Uncomment and modify to override default regression hyperparameters

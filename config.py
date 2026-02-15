@@ -21,7 +21,7 @@ class Config:
     # winequality-red.csv & winequality-white.csv: https://archive.ics.uci.edu/dataset/186/wine+quality
     # energydata_complete.csv:  https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
     # superconductivty_train.csv & superconductivty_unique_m.csv: https://archive.ics.uci.edu/dataset/464/superconductivty+data
-    DATA_PATH = DATA_DIR / 'ENB_data.csv'
+    DATA_PATH = DATA_DIR / 'bike_sharing_hour.csv'
 
     # CSV delimiter setting
     # Options: 'auto' (auto-detect), ',' (comma), ';' (semicolon), '\t' (tab), etc.
@@ -42,11 +42,11 @@ class Config:
     # Aggregation settings (replace the value for testing)
     # Columns to aggregate for target variable if multiple columns are specified, 
     # they will be combined using the function defined in AGGREGATION_NAME
-    AGGREGATION_COLS = ['heating_load', 'cooling_load']  
+    AGGREGATION_COLS = ['casual', 'registered']  
     # these columns must exist in the dataset
 
     # Columns to exclude from features (will not be used for training)
-    EXCLUDE_COLS = ['heating_load', 'cooling_load']  
+    EXCLUDE_COLS = ['instant', 'dteday', 'casual', 'registered']  # Example: exclude ID or date columns that don't add predictive value
 
 
     # Aggregation method only if multiple columns are specified in AGGREGATION_COLS
