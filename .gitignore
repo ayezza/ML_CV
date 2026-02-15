@@ -182,7 +182,4 @@ cython_debug/
 
 # Claude AI files and docs temp files
 .claude/
-/docs/*.docx
-/docs/temp*.*
-/docs/~*.*
 /docs
