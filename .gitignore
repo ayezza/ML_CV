@@ -182,9 +182,7 @@ cython_debug/
 
 # Claude AI files and docs temp files
 .claude/
-./docs/*.docx
-./docs/temp*.*
-./docs/~*.*
-docs/MACHINE_LEARNING_CROSS_VALIDATION.docx
-docs/~$CHINE_LEARNING_CROSS_VALIDATION.docx
+/docs/*.docx
+/docs/temp*.*
+/docs/~*.*
 /docs
