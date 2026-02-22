@@ -12,7 +12,7 @@
             "program": "./cv_experiment.py",
             "console": "integratedTerminal",
             "pythonArgs": ["-X", "utf8"],
-            "args": ["--cv", "3", "5", "10", "--task", "classification"]
+            "args": ["--cv", "3", "--task", "classification"]
         }
     ]
 }

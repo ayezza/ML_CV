@@ -14,6 +14,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from core.metrics import MetricsCollector
 from visualization.classification import (
     plot_confusion_matrix,
+    plot_percentage_confusion_matrix,
     plot_roc_curve,
     plot_classification_bar_chart,
     plot_probability_matrix
@@ -610,7 +611,7 @@ class ModelTrainer:
             model_name = f'Voting_{voting.capitalize()}'
             output_base = self.output_config.CLF_TUNED_DIR if is_tuned else self.output_config.CLF_BASE_DIR
 
-            # Confusion matrix
+            # Confusion matrix (raw counts)
             plot_confusion_matrix(
                 y_test, y_pred,
                 target_classes=sorted(y_test.unique()),
@@ -619,6 +620,18 @@ class ModelTrainer:
                 is_tuned=is_tuned,
                 custom_aggregation_name=custom_aggregation_name
             )
+
+            # Percentage confusion matrices (3 normalization modes)
+            for normalize in ('total', 'true', 'pred'):
+                plot_percentage_confusion_matrix(
+                    y_test, y_pred,
+                    target_classes=sorted(y_test.unique()),
+                    model_name=model_name,
+                    output_path=output_base / 'confusion_matrices',
+                    normalize=normalize,
+                    is_tuned=is_tuned,
+                    custom_aggregation_name=custom_aggregation_name
+                )
 
             # ROC curve (only for soft voting)
             if voting == 'soft':
@@ -1653,7 +1666,7 @@ class ModelTrainer:
         """Generate all classification visualizations"""
         output_base = self.output_config.CLF_TUNED_DIR if is_tuned else self.output_config.CLF_BASE_DIR
 
-        # Confusion matrix
+        # Confusion matrix (raw counts)
         plot_confusion_matrix(
             y_test, y_pred,
             target_classes=sorted(y_test.unique()),
@@ -1662,6 +1675,18 @@ class ModelTrainer:
             is_tuned=is_tuned,
             custom_aggregation_name=custom_aggregation_name
         )
+
+        # Percentage confusion matrices (3 normalization modes)
+        for normalize in ('total', 'true', 'pred'):
+            plot_percentage_confusion_matrix(
+                y_test, y_pred,
+                target_classes=sorted(y_test.unique()),
+                model_name=model_name,
+                output_path=output_base / 'confusion_matrices',
+                normalize=normalize,
+                is_tuned=is_tuned,
+                custom_aggregation_name=custom_aggregation_name
+            )
 
         # ROC curve
         plot_roc_curve(

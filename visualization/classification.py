@@ -94,6 +94,119 @@ def plot_confusion_matrix(y_test, y_pred, target_classes, model_name,
     return save_path
 
 
+def plot_percentage_confusion_matrix(y_test, y_pred, target_classes, model_name,
+                                     output_path, normalize='total', is_tuned=False,  # noqa: ARG001
+                                     custom_aggregation_name='sum', title=None, dataset_info=None):
+    """
+    Generate and save a percentage-based confusion matrix visualization.
+
+    Each cell shows the percentage value and the raw count below it.
+
+    Args:
+        y_test: True labels
+        y_pred: Predicted labels
+        target_classes: List of class labels
+        model_name: Name of the model for display
+        output_path: Directory path where plot will be saved
+        normalize: Normalization mode:
+            'total' - % of all samples (each cell / total N) [default]
+            'true'  - % per actual class, rows sum to 100% (recall view)
+            'pred'  - % per predicted class, columns sum to 100% (precision view)
+        is_tuned: Whether this is for a tuned model (affects subdirectory)
+        custom_aggregation_name: Name of aggregation function used
+        title: Custom title (optional)
+        dataset_info: Dict with 'name', 'target_cols', 'filename_suffix' (optional)
+
+    Returns:
+        Path: Full path to the saved confusion matrix plot
+
+    Example:
+        >>> plot_percentage_confusion_matrix(
+        ...     y_test, y_pred,
+        ...     target_classes=[0, 1, 2, 3],
+        ...     model_name='RandomForest',
+        ...     output_path=Path('./output/graphs/classification/base/confusion_matrices'),
+        ...     normalize='total'
+        ... )
+    """
+    targets = sorted(target_classes)
+
+    print("="*80)
+    print(" "*20 + "PERCENTAGE CONFUSION MATRIX")
+    print("="*80)
+
+    # Compute raw confusion matrix
+    cm = confusion_matrix(y_test, y_pred, labels=target_classes)
+    total = cm.sum()
+
+    # Compute percentage matrix based on normalization mode
+    if normalize == 'true':
+        # Row-normalized: each row sums to 100% (recall per class)
+        row_sums = cm.sum(axis=1, keepdims=True)
+        cm_pct = np.where(row_sums == 0, 0.0, cm / row_sums * 100)
+        norm_label = "Row-normalized (Recall per class)"
+    elif normalize == 'pred':
+        # Column-normalized: each column sums to 100% (precision per class)
+        col_sums = cm.sum(axis=0, keepdims=True)
+        cm_pct = np.where(col_sums == 0, 0.0, cm / col_sums * 100)
+        norm_label = "Column-normalized (Precision per class)"
+    else:
+        # Total: each cell as % of all samples
+        cm_pct = cm / total * 100
+        norm_label = f"% of total (N={total})"
+
+    # Print text summary
+    print(f"\nNormalization: {norm_label}")
+    pct_df = pd.DataFrame(cm_pct, index=target_classes, columns=target_classes)
+    print("\nPercentage confusion matrix:")
+    print(pct_df.applymap(lambda x: f"{x:.1f}%"))
+
+    # Build dual annotation: "XX.X%\n(count)"
+    annot = np.empty_like(cm, dtype=object)
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            annot[i, j] = f"{cm_pct[i, j]:.1f}%\n({cm[i, j]})"
+
+    # Plot
+    print("\nGenerating percentage confusion matrix visualization...")
+    _, ax = plt.subplots(figsize=(8, 6))
+
+    sns.heatmap(data=cm_pct, annot=annot, fmt='', cmap='Blues',
+                xticklabels=targets, yticklabels=targets,
+                cbar_kws={'label': '% of samples'}, square=True, ax=ax,
+                vmin=0, vmax=100 if normalize in ('true', 'pred') else None)
+
+    ax.set_xlabel('Predicted class', fontsize=12)
+    ax.set_ylabel('Actual class', fontsize=12)
+
+    if title is None:
+        title = f'Percentage Confusion Matrix - {model_name}'
+
+    full_title = f"{title}\n{norm_label}\n(Aggregation: {custom_aggregation_name})"
+    if dataset_info:
+        full_title = (f"{title}\nDataset: {dataset_info['name']} | Target: {dataset_info['target_cols']}"
+                      f"\n{norm_label} | Aggregation: {custom_aggregation_name}")
+    ax.set_title(full_title, fontsize=13)
+    plt.tight_layout()
+
+    # Ensure output directory exists
+    output_path = Path(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Save
+    suffix = f"_{dataset_info['filename_suffix']}" if dataset_info else ""
+    filename = (f"CONF_MATRIX_PCT_{model_name.replace(' ', '_').lower()}"
+                f"_{normalize}_{custom_aggregation_name}{suffix}.png")
+    save_path = output_path / filename
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"✓ Percentage confusion matrix saved to: {save_path}")
+    print("="*80 + "\n")
+
+    return save_path
+
+
 def plot_roc_curve(y_test, y_score, model_name, output_path,
                    is_tuned=False, n_classes=4,
                    custom_aggregation_name='sum', title=None, dataset_info=None):

@@ -38,6 +38,7 @@ matplotlib.use('Agg')
 
 from core.models import ModelTrainer
 from visualization.analysis import plot_feature_distributions
+from visualization.classification import plot_confusion_matrix, plot_percentage_confusion_matrix
 from visualization.cv_analysis import generate_cv_analysis_report
 
 # Add parent directory to Python path
@@ -265,6 +266,30 @@ def run_cv_experiment(prepared_data, cv_values=[3, 5], model_name='RandomForest'
             print(f"  Best CV score: {best_score:.5f}")
             print(f"  Test accuracy: {test_metrics['Accuracy']:.5f}")
             print(f"  Best params: {best_params}")
+
+            # Generate confusion matrices (raw counts + 3 percentage normalizations)
+            agg_label = f'{Config.SEARCH_TYPE}_cv{cv}'
+            target_classes = sorted(y_test_clf.unique())
+            try:
+                plot_confusion_matrix(
+                    y_test_clf, y_pred,
+                    target_classes=target_classes,
+                    model_name=model_name,
+                    output_path=Config.CLF_TUNED_CONF_MATRIX_DIR,
+                    custom_aggregation_name=agg_label
+                )
+                for normalize in ('total', 'true', 'pred'):
+                    plot_percentage_confusion_matrix(
+                        y_test_clf, y_pred,
+                        target_classes=target_classes,
+                        model_name=model_name,
+                        output_path=Config.CLF_TUNED_CONF_MATRIX_DIR,
+                        normalize=normalize,
+                        custom_aggregation_name=agg_label
+                    )
+            except Exception as e:
+                print(f"  [WARNING] Confusion matrix generation failed: {e}")
+                traceback.print_exc()
 
             # Generate learning curve for each CV value to compare convergence
             generate_learning_curve_for_model(

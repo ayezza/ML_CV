@@ -3,6 +3,7 @@ Visualization package for ML models and data analysis
 """
 from .classification import (
     plot_confusion_matrix,
+    plot_percentage_confusion_matrix,
     plot_roc_curve,
     plot_classification_bar_chart,
     plot_probability_matrix,
@@ -43,6 +44,7 @@ __version__ = '1.0.0'
 __all__ = [
     # Classification
     'plot_confusion_matrix',
+    'plot_percentage_confusion_matrix',
     'plot_roc_curve',
     'plot_classification_bar_chart',
     'plot_probability_matrix',
