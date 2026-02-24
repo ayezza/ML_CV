@@ -186,4 +186,3 @@ cython_debug/
 /docs/*.tmp
 /output_old
 /data_old
-/output
