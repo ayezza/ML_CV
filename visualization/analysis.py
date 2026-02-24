@@ -2,6 +2,9 @@
 Data Analysis Visualization Module
 
 This module provides visualization functions for data analysis and exploration.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 import numpy as np
 import pandas as pd

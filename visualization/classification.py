@@ -2,6 +2,9 @@
 Classification Visualization Module
 
 This module provides visualization functions for classification models.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 import numpy as np
 import pandas as pd

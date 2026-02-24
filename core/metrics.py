@@ -3,6 +3,9 @@ Metrics Collection and Management Module
 
 This module handles collection, storage, and export of model performance metrics.
 """
+# Author: Abdel YEZZA
+# NOTE: Any use within a professional context must reference the author.
+
 from sklearn import metrics
 from sklearn.metrics import (
     precision_recall_fscore_support,

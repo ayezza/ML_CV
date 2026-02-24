@@ -1,4 +1,9 @@
 """
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
+"""
+
+"""
 Cross-Validation Fold Experiment
 
 This script tests different CV fold values to see their impact on:
@@ -28,6 +33,7 @@ Usage:
     # Combine all options
     python cv_experiment.py --models SVC RandomForest --cv 3 5 10 --task both
 """
+
 import sys
 import traceback
 from pathlib import Path

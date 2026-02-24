@@ -2,6 +2,9 @@
 Hyperparameter Tuning Module
 
 This module handles hyperparameter tuning using GridSearchCV and RandomizedSearchCV.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 import pandas as pd
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV

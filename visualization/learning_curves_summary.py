@@ -3,6 +3,9 @@ Learning Curves Summary Table Generator
 
 This module creates summary tables aggregating learning curve statistics
 for all trained models.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 import pandas as pd
 import matplotlib.pyplot as plt

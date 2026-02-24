@@ -1,4 +1,9 @@
 """
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
+"""
+
+"""
 Custom Aggregation Functions for Target Variable Creation
 
 This module provides various aggregation functions to combine two columns

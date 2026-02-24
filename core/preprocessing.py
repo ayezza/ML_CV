@@ -2,6 +2,9 @@
 Data Preprocessing Module
 
 This module handles data loading, preprocessing, and feature engineering.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 import warnings
 import pandas as pd

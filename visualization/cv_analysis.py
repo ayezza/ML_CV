@@ -3,6 +3,9 @@ Cross-Validation Analysis Visualization Module
 
 This module provides visualization functions for CV experiment results,
 comparing different CV fold values across multiple models.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 import numpy as np
 import pandas as pd

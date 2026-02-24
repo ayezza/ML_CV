@@ -2,6 +2,9 @@
 Model Training Module
 
 This module handles training of machine learning models for classification and regression.
+
+Author: Abdel YEZZA
+NOTE: Any use within a professional context must reference the author.
 """
 from sklearn.ensemble import (RandomForestClassifier, RandomForestRegressor, VotingClassifier,
                               GradientBoostingRegressor, BaggingClassifier, BaggingRegressor,
